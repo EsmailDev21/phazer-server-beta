@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # CI has real network access, unlike the sandbox this workflow was authored
+  # in - `prisma generate`/`migrate deploy` download their engines normally.
+  DATABASE_URL: postgresql://user:password@localhost:5432/appdb?schema=public
+  TEST_DATABASE_URL: postgresql://user:password@localhost:5432/appdb_test?schema=public
+  JWT_SECRET: ci-test-secret-do-not-use-in-prod-aaaaaaaaaaaaaaaaaaaaaaaa
+  # Real-Redis unit specs (src/redis/redis.real.spec.ts). Required in CI: the
+  # spec fails, rather than skips, when this is missing.
+  TEST_REDIS_URL: redis://localhost:6379
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: appdb
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U user -d appdb"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Create the disposable test database
+        run: |
+          PGPASSWORD=password psql -h localhost -U user -d appdb -c "CREATE DATABASE appdb_test;"
+
+      - name: Apply migrations (dev DB)
+        run: npm run db:migrate:deploy
+
+      # lint:check has no --fix: CI must fail on drift, not silently rewrite it.
+      - run: npm run lint:check
+      - run: npm run typecheck
+
+      # Offline (no DB, no Prisma engine) - runs before anything DB-dependent
+      # so a broken @map is caught in seconds, not after migrate/integration
+      # steps. See scripts/verify-schema-mapping.js for why this exists.
+      - name: Schema field/enum mapping check
+        run: npm run db:verify:mapping
+
+      - name: Unit tests
+        run: npm run test:cov
+
+      - name: Migration drift check
+        run: npm run db:verify
+        env:
+          SHADOW_DATABASE_URL: postgresql://user:password@localhost:5432/appdb_shadow?schema=public
+
+      - name: Integration tests
+        run: npm run test:integration
+
+      - name: E2E tests
+        run: npm run test:e2e
+
+      - run: npm run build
+
+      - name: Worker smoke test (build dist/main.worker.js, run a real job through it)
+        run: npm run test:worker-smoke
+        env:
+          REDIS_URL: redis://localhost:6379

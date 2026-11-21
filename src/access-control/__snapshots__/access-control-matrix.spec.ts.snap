@@ -1,0 +1,57 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`the whole matrix (snapshot: any grant change must show up in review) ROLE_PERMISSIONS + COLLABORATOR_ROLE_PERMISSIONS 1`] = `
+"action                     OWNER         ADMIN         MEMBER        VIEWER        CLIENT        collab:CONTRIBUTOR collab:COMMENTER collab:VIEWER
+applyTemplate              Y             Y             Y             n             n             n             n             n             scopes=WORKSPACE
+archiveProject             Y             Y             n             n             n             n             n             n             scopes=PROJECT
+archiveTask                Y             Y             Y             n             n             n             n             n             scopes=TASK
+assignTask                 Y             Y             Y             n             n             Y             n             n             scopes=TASK
+changeAccountMemberRole    Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+createComment              Y             Y             Y             Y             Y             Y             Y             n             scopes=TASK|PROJECT|ACTIVITY
+createProject              Y             Y             Y             n             n             n             n             n             scopes=WORKSPACE limit=project
+createShareLink            Y             Y             Y             n             n             n             n             n             scopes=TASK|PROJECT
+createTask                 Y             Y             Y             n             n             Y             n             n             scopes=WORKSPACE limit=task
+createTeam                 Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+createTemplate             Y             Y             Y             n             n             -             -             -             scopes=ACCOUNT limit=template
+createWorkspace            Y             Y             n             n             n             -             -             -             scopes=ACCOUNT limit=workspace
+deleteAccount              Y             n             n             n             n             -             -             -             scopes=ACCOUNT
+deleteComment              Y             Y             n             n             n             n             n             n             scopes=COMMENT owner=authorId
+deleteFile                 Y             Y             n             n             n             n             n             n             scopes=ATTACHMENT owner=uploadedById
+deleteProject              Y             Y             n             n             n             n             n             n             scopes=PROJECT
+deleteTask                 Y             Y             n             n             n             n             n             n             scopes=TASK
+deleteTeam                 Y             Y             n             n             n             n             n             n             scopes=TEAM
+deleteTemplate             Y             Y             n             n             n             n             n             n             scopes=TEMPLATE owner=createdById
+deleteWorkspace            Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+editAccount                Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+editComment                Y             Y             n             n             n             n             n             n             scopes=COMMENT owner=authorId
+editProject                Y             Y             Y             n             n             n             n             n             scopes=PROJECT
+editTask                   Y             Y             Y             n             n             Y             n             n             scopes=TASK
+editTeam                   Y             Y             n             n             n             n             n             n             scopes=TEAM
+editTemplate               Y             Y             n             n             n             n             n             n             scopes=TEMPLATE owner=createdById
+editWorkspace              Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+exportWorkspaceTemplate    Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+grantTeamWorkspaceAccess   Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+inviteToAccount            Y             Y             n             n             n             -             -             -             scopes=ACCOUNT limit=member
+linkChannel                Y             Y             n             n             n             n             n             n             scopes=ACCOUNT|WORKSPACE
+manageAutomations          Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+manageBilling              Y             n             n             n             n             -             -             -             scopes=ACCOUNT
+manageCustomFields         Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+manageIntegrations         Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+manageSavedViews           Y             Y             Y             n             n             n             n             n             scopes=WORKSPACE
+manageTags                 Y             Y             Y             n             n             Y             n             n             scopes=WORKSPACE
+manageTeamMembers          Y             Y             n             n             n             n             n             n             scopes=TEAM
+manageWorkflow             Y             Y             n             n             n             n             n             n             scopes=PROJECT|WORKSPACE
+manageWorkspaceCollaborators Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+manageWorkspaceGuests      Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+publishTemplate            Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+reactToComment             Y             Y             Y             Y             Y             Y             Y             n             scopes=COMMENT
+reactToTarget              Y             Y             Y             Y             Y             Y             Y             n             scopes=COMMENT|ACTIVITY
+removeAccountMember        Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+revokeShareLink            Y             Y             n             n             n             n             n             n             scopes=TASK|PROJECT owner=createdById
+runImport                  Y             Y             n             n             n             n             n             n             scopes=WORKSPACE
+uploadFile                 Y             Y             Y             n             n             Y             n             n             scopes=TASK|PROJECT|COMMENT limit=storage
+viewAccount                Y             Y             Y             Y             n             -             -             -             scopes=ACCOUNT
+viewActivity               Y             Y             Y             Y             n             Y             Y             Y             scopes=WORKSPACE
+viewAuditLog               Y             Y             n             n             n             -             -             -             scopes=ACCOUNT
+viewBilling                Y             Y             n             n             n             -             -             -             scopes=ACCOUNT"
+`;

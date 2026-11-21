@@ -1,0 +1,10 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "../..",
+  "testEnvironment": "node",
+  "testRegex": ".int-spec.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "globalSetup": "<rootDir>/test/integration/support/global-setup.ts",
+  "setupFilesAfterEnv": ["<rootDir>/test/integration/support/setup-after-env.ts"],
+  "testTimeout": 20000
+}

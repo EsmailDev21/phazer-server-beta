@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "name": "Content calendar",
+    "description": "A launch month of posts across channels, scheduled from a launch date, weekdays only.",
+    "kind": "WORKSPACE",
+    "category": "marketing"
+  },
+  "dateAnchor": {
+    "variable": "launchDate",
+    "skipWeekends": true
+  },
+  "variables": [
+    {
+      "key": "brand",
+      "label": "Brand",
+      "type": "TEXT",
+      "default": "Acme"
+    },
+    {
+      "key": "launchDate",
+      "label": "Launch date",
+      "type": "DATE",
+      "required": true
+    },
+    {
+      "key": "mainChannel",
+      "label": "Main channel",
+      "type": "SELECT",
+      "options": [
+        "Blog",
+        "Newsletter",
+        "Social"
+      ],
+      "default": "Blog"
+    },
+    {
+      "key": "weeks",
+      "label": "Weeks of content",
+      "type": "NUMBER",
+      "default": 4
+    }
+  ],
+  "roles": [
+    {
+      "key": "writer",
+      "label": "Writer",
+      "suggestedAccess": "MEMBER"
+    },
+    {
+      "key": "editor",
+      "label": "Editor",
+      "suggestedAccess": "ADMIN"
+    }
+  ],
+  "modules": [
+    {
+      "key": "paid",
+      "label": "Paid campaign",
+      "defaultEnabled": false,
+      "includes": [
+        "ads"
+      ]
+    }
+  ],
+  "workspace": {
+    "tags": [
+      {
+        "name": "blog"
+      },
+      {
+        "name": "newsletter"
+      },
+      {
+        "name": "social"
+      },
+      {
+        "name": "ads"
+      }
+    ],
+    "customFields": [
+      {
+        "key": "channel",
+        "name": "Channel",
+        "dataType": "SELECT",
+        "options": [
+          "Blog",
+          "Newsletter",
+          "Social"
+        ]
+      },
+      {
+        "key": "channels",
+        "name": "Also on",
+        "dataType": "MULTI_SELECT",
+        "options": [
+          "Blog",
+          "Newsletter",
+          "Social"
+        ]
+      },
+      {
+        "key": "word-count",
+        "name": "Word count",
+        "dataType": "NUMBER"
+      },
+      {
+        "key": "approved",
+        "name": "Approved",
+        "dataType": "CHECKBOX"
+      },
+      {
+        "key": "go-live",
+        "name": "Go live",
+        "dataType": "DATE"
+      },
+      {
+        "key": "brief",
+        "name": "Brief",
+        "dataType": "URL"
+      },
+      {
+        "key": "reviewer",
+        "name": "Reviewer",
+        "dataType": "USER"
+      },
+      {
+        "key": "angle",
+        "name": "Angle",
+        "dataType": "TEXT"
+      }
+    ]
+  },
+  "projects": [
+    {
+      "nodeKey": "calendar",
+      "name": "{{brand}} content calendar",
+      "tasks": [
+        {
+          "nodeKey": "post-1",
+          "title": "{{brand}} launch post ({{mainChannel}})",
+          "description": "Goes live {{format(launchDate, \"EEEE d MMMM\")}}. Slug: {{slug(brand)}}.",
+          "tags": [
+            "blog"
+          ],
+          "priority": "HIGH",
+          "customValues": {
+            "channel": "Blog",
+            "channels": [
+              "Newsletter",
+              "Social"
+            ],
+            "word-count": 900,
+            "approved": false,
+            "go-live": {
+              "offsetDays": 0
+            },
+            "brief": "https://example.com/briefs/launch",
+            "angle": "Why we built it"
+          },
+          "assigneeRoles": [
+            "writer"
+          ],
+          "startOffsetDays": -7,
+          "dueOffsetDays": 0,
+          "comments": [
+            {
+              "body": "Draft due {{addDays(launchDate, -3)}}"
+            }
+          ]
+        },
+        {
+          "nodeKey": "post-2",
+          "title": "Week 2 newsletter",
+          "tags": [
+            "newsletter"
+          ],
+          "customValues": {
+            "channel": "Newsletter",
+            "go-live": {
+              "offsetDays": 7
+            }
+          },
+          "assigneeRoles": [
+            "writer",
+            "editor"
+          ],
+          "dueOffsetDays": 7
+        },
+        {
+          "nodeKey": "post-3",
+          "title": "Week 3 social thread",
+          "tags": [
+            "social"
+          ],
+          "customValues": {
+            "channel": "Social",
+            "go-live": {
+              "offsetDays": 14
+            }
+          },
+          "dueOffsetDays": 14
+        },
+        {
+          "nodeKey": "ads",
+          "title": "Paid ads flight",
+          "tags": [
+            "ads"
+          ],
+          "startOffsetDays": 0,
+          "dueOffsetDays": 21
+        }
+      ],
+      "dependencies": [
+        {
+          "from": "post-1",
+          "to": "post-2"
+        },
+        {
+          "from": "post-2",
+          "to": "post-3"
+        }
+      ],
+      "description": "A {{weeks}}-week plan for {{brand}}."
+    }
+  ],
+  "extensions": {
+    "acme.notes": {
+      "owner": "marketing",
+      "reviewed": true
+    }
+  }
+}

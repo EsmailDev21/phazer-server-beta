@@ -1,0 +1,75 @@
+# Local development services. Credentials match .env.example.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d appdb"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # A second, disposable database for integration tests (npm run test:integration).
+  # Kept separate from `db` above so running tests never touches dev data.
+  test-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: appdb_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data # never persisted - every run starts empty
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d appdb_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Used from step 0.1 onward (BullMQ, SSE pub/sub). Provisioned now so later
+  # steps don't need to touch this file again.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Used from Phase 4 onward (import attachment copy) and by AttachmentsService
+  # in general once S3_* is pointed at it locally. Provisioned now for the
+  # same reason as redis above.
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  db_data:
+  minio_data:

@@ -1,0 +1,39 @@
+{
+  "_comment": "Step 2.5 (ADR-0013). Replace https://api.example.com with API_PUBLIC_URL and app.example.com with the web app host (it must match FRONTEND_URL / TASK_URL_TEMPLATE). Paste at api.slack.com/apps -> Create New App -> From a manifest. Then copy Client ID/Secret and the Signing Secret into SLACK_CLIENT_ID, SLACK_CLIENT_SECRET, SLACK_SIGNING_SECRET.",
+  "display_information": { "name": "Tasks", "description": "Create, update and follow tasks from Slack" },
+  "features": {
+    "bot_user": { "display_name": "Tasks", "always_online": false },
+    "slash_commands": [
+      {
+        "command": "/task",
+        "url": "https://api.example.com/integrations/slack/commands",
+        "description": "Create, update, assign and list tasks",
+        "usage_hint": "create | update | assign | list | link  (try /task help)",
+        "should_escape": true
+      }
+    ],
+    "shortcuts": [
+      { "name": "Create task", "type": "message", "callback_id": "create_task", "description": "Create a task from this message" }
+    ],
+    "unfurl_domains": ["app.example.com"]
+  },
+  "oauth_config": {
+    "redirect_urls": [
+      "https://api.example.com/integrations/slack/callback",
+      "https://api.example.com/integrations/slack/identity/callback"
+    ],
+    "scopes": {
+      "bot": ["commands", "chat:write", "chat:write.public", "links:read", "links:write", "channels:read", "users:read", "users:read.email"]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "request_url": "https://api.example.com/integrations/slack/events",
+      "bot_events": ["link_shared", "app_uninstalled", "tokens_revoked"]
+    },
+    "interactivity": { "is_enabled": true, "request_url": "https://api.example.com/integrations/slack/interactivity" },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+}

@@ -1,0 +1,2414 @@
+// ============================================================
+// OPTIMIZED SCHEMA — full rebuild
+// Every model below was decided conversationally against the audit
+// findings from the original app (see: schema_graph_v2.d2,
+// api_contract_graph_v2.d2, business_logic_findings_v1.md,
+// optimized_schema_graph_v1.d2). Comments reference the specific
+// decision so context isn't lost.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // NEVER hardcode — see audit finding on leaked prod credentials
+}
+
+// ============================================================
+// IDENTITY & TENANCY
+// ============================================================
+
+model User {
+  automationsCreated Automation[] @relation("AutomationCreator")
+  savedViews         SavedView[]  @relation("SavedViewOwner")
+  importJobs ImportJob[] @relation("ImportJobCreator")
+  id       String  @id @default(cuid())
+  oauthStates                   OAuthState[]
+  integrationConnectionsCreated IntegrationConnection[]
+  identityLinks                 IdentityLink[]
+  channelLinksConfigured        ChannelLink[]
+  email    String  @unique
+  username String  @unique
+  name     String
+  avatar   String?
+  googleId String? @unique @map("google_id")
+  password String?
+
+  emailVerified Boolean   @default(false) @map("email_verified")
+  onboardedAt DateTime? @map("onboarded_at")
+
+  // step 0.6: outside account RBAC (see PlatformRole's doc) - default NONE
+  // so every existing row is unaffected; only Phase 6's moderation queue
+  // will ever set this to MODERATOR/ADMIN.
+  platformRole PlatformRole @default(NONE) @map("platform_role")
+
+  bio      String?
+  location String?
+  website  String?
+  github   String?
+  twitter  String?
+  linkedin String?
+
+  // NOTE: zero billing fields here on purpose. Billing lives on Account,
+  // for both personal and org — one shape, one source of truth, resolved
+  // after the personal-billing-never-actually-implemented finding.
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  preferences      UserPreferences?
+  refreshTokens    RefreshToken[]
+  ownedAccount     Account?              @relation("PersonalAccountOwner")
+  accountMembers   AccountMember[]
+  teamMembers      TeamMember[]
+  workspaceCollabs WorkspaceCollaborator[] @relation("CollaboratorUser")
+  workspaceGuests  WorkspaceGuest[]      @relation("GuestUser")
+  projectMembers   ProjectMember[]
+  assignedTasks    Task[]                @relation("TaskAssignees")
+  createdTasks     Task[]                @relation("TaskCreator")
+  createdProjects  Project[]             @relation("ProjectCreator")
+  comments         Comment[]
+  reactions        Reaction[]
+  mentions         Mention[]             @relation("MentionedUser")
+  watches          Watch[]
+  activities       Activity[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
+  snapSessions     SnapSession[]
+  shareLinks       ShareLink[]
+  uploadedAttachments Attachment[]
+  createdTemplates Template[] @relation("TemplateCreator") // step 3.5
+  createdTemplateVersions TemplateVersion[] @relation("TemplateVersionCreator") // step 3.5
+  templateInstalls TemplateInstall[] @relation("TemplateInstaller") // step 3.6
+
+  @@map("users")
+}
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  preferredMode CreationMode @default(SNAP) @map("preferred_mode")
+  // Validated shape (NOT an arbitrary blob, per the DTO-discipline established
+  // throughout this rebuild): map of NotificationType -> {inApp, email, push}
+  notificationSettings Json? @map("notification_settings")
+  uiPreferences Json? @map("ui_preferences")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_preferences")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  tokenHash String    @unique @map("token_hash")
+  userId String @map("user_id")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo String? @map("device_info")
+  lastUsedAt DateTime? @map("last_used_at")
+  revoked    Boolean   @default(false)
+  revokedAt DateTime? @map("revoked_at")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+
+// The ownership + billing root. ONE shape for personal and organizational
+// accounts — resolves the old schema's duplicated User/Workspace billing
+// fields and the "personal billing API was never actually built" finding.
+model Account {
+  id   String      @id @default(cuid())
+  type AccountType
+  integrationConnections IntegrationConnection[]
+  oauthStates            OAuthState[]
+
+  // Billing — identical shape regardless of type
+  planType PlanKey? @map("plan_type") // no DB default — set explicitly at
+                                   // Account creation time (FREE_PERSONAL
+                                   // for PERSONAL accounts, FREE_ORG for
+                                   // ORGANIZATION), since the two types
+                                   // have different free-tier defaults and
+                                   // one shared @default() can't express that
+  paymentProvider PaymentProvider? @map("payment_provider") // which provider this account is
+                                   // currently set up with — determined at
+                                   // first checkout from billing country,
+                                   // stable afterward unless explicitly migrated
+  externalCustomerId String?   @unique @map("external_customer_id") // generalized from stripeCustomerId —
+                                   // meaning depends on paymentProvider
+  externalSubscriptionId String? @map("external_subscription_id")
+  subscriptionStatus String? @map("subscription_status")
+  billingCountry String? @map("billing_country") // ISO 3166-1 alpha-2, e.g. "TN", "US".
+                                   // Found missing during the consolidated
+                                   // cross-module check — Billing module's
+                                   // provider routing (determineProvider)
+                                   // referenced this field without it ever
+                                   // being added. Set explicitly at Account
+                                   // creation (required before first
+                                   // checkout), never inferred from
+                                   // request IP — consistent with the
+                                   // Foundations "never inferred, never
+                                   // defaulted" rule.
+  seatsIncluded Int       @default(1) @map("seats_included")
+  seatsUsed Int       @default(1) @map("seats_used")
+  currentPeriodStart DateTime? @map("current_period_start")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  canceledAt DateTime? @map("canceled_at")
+  trialEndsAt DateTime? @map("trial_ends_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  // ADDED — Tenancy module, DELETE /accounts/:id spec: soft-delete with a
+  // 30-day grace period before a scheduled purge job hard-deletes. Not in
+  // the original ground-truth schema; added additively here rather than
+  // guessed around, per explicit decision. NULL = active account.
+  deletedAt DateTime? @map("deleted_at")
+
+  // Exactly one of these is set, enforced at the app layer based on `type`
+  personalOwnerId String? @unique @map("personal_owner_id")
+  personalOwner   User?   @relation("PersonalAccountOwner", fields: [personalOwnerId], references: [id])
+  organization    Organization?
+
+  workspaces Workspace[]
+  teams      Team[]
+  members    AccountMember[]
+  payments   Payment[]
+  invoices   Invoice[]
+  usageMetrics UsageMetric[]
+  auditLogs  AuditLog[]
+
+  @@index([type])
+  @@index([deletedAt])
+  workspaceKeyAliases WorkspaceKeyAlias[] // step 1.1
+  templates Template[] // step 3.5
+  templateInstalls TemplateInstall[] // step 3.6
+
+  /// Step 3.9. TRUE for the single account that owns the first-party templates (a partial unique
+  /// index in the migration keeps it to one). Not a billing or membership concept: nobody signs in
+  /// to it, and it is exempt from the template plan limit.
+  isSystem Boolean @default(false) @map("is_system")
+
+  @@map("accounts")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  accountId String   @unique @map("account_id")
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  logo      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("organizations")
+}
+
+model Workspace {
+  channelLinks ChannelLink[]
+  automationWaits AutomationWait[]
+  automationMessages AutomationMessage[]
+  id          String  @id @default(cuid())
+  accountId String @map("account_id") // ONE FK — personal-vs-org encoded by Account.type, not a 3-way XOR
+  account     Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  icon        String?
+
+  // step 1.1 (ADR-0004). A task's key is "<key>-<number>", e.g. ENG-123.
+  // `key` is unique PER ACCOUNT. Stored uppercase, ^[A-Z][A-Z0-9]{1,9}$ (CHECK in the migration). Changed
+  // only through WorkspaceKeysService, which keeps the old key reserved and
+  // resolvable via WorkspaceKeyAlias - never write it directly.
+  key String @map("key")
+  // The NEXT number to hand out. Advanced with one atomic UPDATE inside the
+  // task-create transaction, so a rollback rolls it back (gapless) and
+  // concurrent creates serialize on this row.
+  nextTaskNumber Int @default(1) @map("next_task_number")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  keyAliases    WorkspaceKeyAlias[]
+  teamAccess    WorkspaceTeamAccess[]
+  collaborators WorkspaceCollaborator[] // PERSONAL accounts only, app-enforced
+  guests        WorkspaceGuest[]        // ORGANIZATION accounts only, app-enforced
+  projects      Project[]
+  tasks         Task[]
+  customFields  CustomField[]
+  tags          Tag[]
+  issueTypes    IssueType[]
+  iterations    Iteration[]
+  automations   Automation[]
+  automationRuns AutomationRun[]
+  savedViews    SavedView[]
+  importJobs   ImportJob[]
+
+  @@unique([accountId, key], map: "uq_workspaces_account_id_key")
+  @@index([accountId])
+  templateInstalls TemplateInstall[] // step 3.6
+
+  @@map("workspaces")
+}
+
+/// step 1.1 (ADR-0004). A RETIRED workspace key. Keeps `ENG-12` in an old PR
+/// title resolving to the right task after the workspace renames to PLAT, and
+/// keeps ENG reserved in the account so nobody else can take it. Together with
+/// every workspace's current key, no key is ever ambiguous within an account.
+/// Deleting the workspace deletes its aliases (the key becomes free again).
+model WorkspaceKeyAlias {
+  id          String    @id @default(cuid())
+  accountId   String    @map("account_id")
+  account     Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  key         String
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([accountId, key], map: "uq_workspace_key_aliases_account_id_key")
+  @@index([workspaceId], map: "idx_workspace_key_aliases_workspace_id")
+  @@map("workspace_key_aliases")
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  accountId String @map("account_id") // must be an ORGANIZATION-type Account — app-enforced
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  name      String
+  type      String?
+  icon      TeamIcon @default(USERS)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members      TeamMember[]
+  workspaceAccess WorkspaceTeamAccess[]
+
+  @@index([accountId])
+  @@map("teams")
+}
+
+model AccountMember {
+  id        String   @id @default(cuid())
+  accountId String @map("account_id")
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @default(MEMBER)
+  permissions Json?  // fine-grained overrides on top of role, e.g. "VIEWER who can comment"
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  @@unique([accountId, userId])
+  @@index([userId])
+  @@map("account_members")
+}
+
+model TeamMember {
+  id     String @id @default(cuid())
+  teamId String @map("team_id")
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // NO role field — role always comes from AccountMember. You're an
+  // AccountMember before you can be a TeamMember (app-enforced).
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+// CONFIRMED: carries its OWN role, applied to every team member for this
+// workspace, independent of their individual AccountMember role
+// (GitHub-Teams-style). Overlapping grants from multiple teams on the same
+// workspace: most-permissive wins among the ties.
+model WorkspaceTeamAccess {
+  id          String    @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  teamId String @map("team_id")
+  team        Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  role        Role      @default(MEMBER)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([workspaceId, teamId])
+  @@map("workspace_team_access")
+}
+
+// PERSONAL workspaces only. Kept genuinely distinct from AccountMember
+// (org seats) per explicit product decision — different role vocabulary,
+// different billing meaning (free-vs-paid collaborator slots).
+model WorkspaceCollaborator {
+  id              String            @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace       Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedUserId String @map("invited_user_id")
+  invitedUser     User              @relation("CollaboratorUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  role            CollaboratorRole  @default(VIEWER)
+  isFreeSlot Boolean           @default(true) @map("is_free_slot") // billing-metered per BILLING_SETUP.md
+  invitedAt DateTime          @default(now()) @map("invited_at")
+  acceptedAt DateTime? @map("accepted_at")
+
+  @@unique([workspaceId, invitedUserId])
+  @@map("workspace_collaborators")
+}
+
+// ORGANIZATION workspaces only. Added after the optimized-schema graphing
+// pass surfaced a real gap: org workspaces had no non-billable,
+// workspace-wide access tier (only per-project ProjectMember rows, or a
+// full paying AccountMember seat). Named distinctly from
+// WorkspaceCollaborator per the enum-naming-collision lesson from the
+// same pass — not reused, despite the conceptual similarity.
+model WorkspaceGuest {
+  id            String    @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  invitedUserId String @map("invited_user_id")
+  invitedUser   User      @relation("GuestUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  role          CollaboratorRole @default(VIEWER)
+  invitedAt DateTime  @default(now()) @map("invited_at")
+  acceptedAt DateTime? @map("accepted_at")
+
+  @@unique([workspaceId, invitedUserId])
+  @@map("workspace_guests")
+}
+
+model ProjectMember {
+  id        String   @id @default(cuid())
+  projectId String @map("project_id")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @default(MEMBER) // includes CLIENT — only source of access
+                                        // for users with no AccountMember row at all
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  @@unique([projectId, userId])
+  @@map("project_members")
+}
+
+// ONE invite system, not two. role validated against the correct enum
+// for targetType at the DTO layer (was force-cast with `as any` before).
+// targetId is polymorphic (Account | Workspace | Team) — Prisma cannot
+// express a single FK column pointing at multiple tables, so this is
+// intentionally NOT a Prisma relation. Resolved at the application layer
+// (InviteService branches on targetType, then queries the matching table).
+model Invite {
+  id         String       @id @default(cuid())
+  tokenHash String       @unique @map("token_hash")
+  email      String?      // nullable = shareable/public invite link
+  targetType InviteTargetType @map("target_type")
+  targetId String @map("target_id") // no @relation — see note above
+  role       Role         // authoritative for ACCOUNT/TEAM/PROJECT targets.
+                            // For WORKSPACE targets this is a REQUIRED-BUT-
+                            // UNUSED placeholder (defaulted to VIEWER by the
+                            // service) — see collaboratorRole below.
+  // ADDED — Tenancy module. Role (OWNER/ADMIN/MEMBER/VIEWER/CLIENT) and
+  // CollaboratorRole (VIEWER/COMMENTER/CONTRIBUTOR) are genuinely different
+  // enums (schema-confirmed, only VIEWER overlaps by name). Accepting a
+  // WORKSPACE-target invite creates a WorkspaceCollaborator (personal) or
+  // WorkspaceGuest (org), both typed CollaboratorRole — `role` above can't
+  // express COMMENTER/CONTRIBUTOR. This field is the authoritative role
+  // for WORKSPACE-target invites; REQUIRED when targetType===WORKSPACE,
+  // NULL otherwise (app-layer validated, per explicit decision to alter
+  // the schema additively rather than lose COMMENTER/CONTRIBUTOR via invite).
+  collaboratorRole CollaboratorRole? @map("collaborator_role")
+  inviterId String @map("inviter_id")
+  expiresAt DateTime? @map("expires_at")
+  maxUses Int? @map("max_uses")
+  usesCount Int          @default(0) @map("uses_count")
+  isPublic Boolean      @default(false) @map("is_public")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  @@index([targetType, targetId])
+  @@map("invites")
+}
+
+model Payment {
+  id                    String   @id @default(cuid())
+  accountId String @map("account_id") // ONE required FK, not 3-way optional
+  account               Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  provider              PaymentProvider // which processor handled THIS
+                                   // transaction — may differ from
+                                   // Account.paymentProvider over time
+                                   // (e.g. migrated to Stripe later)
+  externalTransactionId String @map("external_transaction_id") // generalized from stripePaymentIntentId
+  amount                Float
+  currency              String   @default("usd")
+  status                String
+  receiptUrl String? @map("receipt_url")
+  failureReason String? @map("failure_reason")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([provider, externalTransactionId])
+  @@index([accountId])
+  @@map("payments")
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  accountId String @map("account_id")
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  provider        PaymentProvider
+  invoiceNumber String    @unique @map("invoice_number")
+  externalInvoiceId String @map("external_invoice_id") // generalized from stripeInvoiceId. For MOR
+                              // transactions this is more of a receipt
+                              // reference than a tax document WE generate —
+                              // Paddle/Lemon Squeezy are the legal seller
+                              // and remit tax themselves; for STRIPE and
+                              // TUNISIA_GATEWAY, this business IS the
+                              // merchant of record and owns tax handling
+  amount          Float
+  currency        String    // no default — varies genuinely by provider
+                              // (TND for TUNISIA_GATEWAY, USD/EUR otherwise)
+  status          String
+  dueDate DateTime @map("due_date")
+  paidAt DateTime? @map("paid_at")
+  lineItems Json @map("line_items")
+  pdfUrl String? @map("pdf_url")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@unique([provider, externalInvoiceId])
+  @@index([accountId])
+  @@map("invoices")
+}
+
+model UsageMetric {
+  id        String   @id @default(cuid())
+  accountId String @map("account_id")
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  metric    String
+  value     Int
+  period    String // YYYY-MM
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([accountId, metric, period])
+  @@map("usage_metrics")
+}
+
+// File attachments — task/project/comment scoped, private and access-gated
+// (unlike User.avatar/Organization.logo/Team.icon/Workspace.icon, which
+// stay simple public-URL strings, confirmed exempt from the storage cap
+// as small platform assets, not modeled here). Two-phase upload: PENDING
+// on presigned-URL issuance, CONFIRMED only after the client reports a
+// successful direct-to-storage upload — avoids counting an abandoned
+// upload as consumed storage, but PENDING rows still count toward the
+// limit check (reservation, prevents a burst of concurrent requests all
+// passing the check before any of them confirm).
+model Attachment {
+  id              String              @id @default(cuid())
+  accountId String @map("account_id") // denormalized — fast storage-sum
+                                         // queries without joining through
+                                         // workspace every time
+  targetType AttachmentableType @map("target_type")
+  targetId String @map("target_id") // polymorphic, no native relation —
+                                         // same pattern as Comment/Reaction/
+                                         // Invite/Notification/ShareLink
+  uploadedById String @map("uploaded_by_id")
+  uploadedBy      User                @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  filename        String
+  mimeType String @map("mime_type")
+  sizeBytes Int @map("size_bytes")
+  storageKey String @map("storage_key") // internal object-storage key,
+                                         // NEVER exposed to clients directly
+                                         // — they get presigned URLs only
+  storageProvider StorageProvider     @default(S3_COMPATIBLE) @map("storage_provider")
+  status          AttachmentStatus    @default(PENDING)
+  createdAt DateTime            @default(now()) @map("created_at")
+  confirmedAt DateTime? @map("confirmed_at")
+  /// step 4.6: hex SHA-256 of the stored bytes. Set for copied (imported) files only; the dedupe key together with
+  /// (account_id, size_bytes). Several rows of one account may share a storage_key (deduped copies): the object is
+  /// deleted only when no row references it any more.
+  sha256 String? @map("sha256")
+
+  @@index([targetType, targetId])
+  @@index([accountId, status]) // powers the live storage-limit SUM query
+  @@index([accountId, sha256], map: "idx_attachments_account_sha256")
+  @@map("attachments")
+}
+
+// Public, no-account resource sharing — a growth/conversion mechanism,
+// not just a passive viewer feature (confirmed: intentionally teaser-level,
+// designed to drive signup rather than substitute for it). VIEW only —
+// no anonymous commenting, so Comment.authorId stays required, no
+// anonymous-identity problem to solve.
+model ShareLink {
+  id              String          @id @default(cuid())
+  tokenHash String          @unique @map("token_hash")
+  targetType ShareableType @map("target_type") // TASK or PROJECT only — Workspace/Account
+                                    // sharing is a much bigger, more
+                                    // dangerous public surface, out of
+                                    // scope unless a real need emerges
+  targetId String @map("target_id") // polymorphic, no native relation —
+                                    // same pattern as Comment/Reaction/
+                                    // Invite/Notification, resolved at
+                                    // the app layer
+  permissionLevel SharePermission @default(VIEW) @map("permission_level")
+  createdById String @map("created_by_id") // creating a link requires auth even
+                                    // though USING one doesn't
+  createdBy       User            @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  expiresAt DateTime? @map("expires_at")
+  revoked         Boolean         @default(false)
+  viewCount Int             @default(0) @map("view_count") // simple counter, not an
+                                    // Activity row per view — views could
+                                    // be much higher-volume than comments/
+                                    // reactions, wrong granularity for a
+                                    // full audit-trail entry
+
+  @@index([targetType, targetId])
+  @@map("share_links")
+}
+
+// Added during the Foundations module pass (webhook idempotency fix),
+// keyed compound during the multi-provider Billing update — each provider
+// (Stripe, MOR, Tunisia gateway) has its own event-ID namespace, so a
+// single global id could theoretically collide across providers.
+// StripeService/MorService/TunisiaGatewayService.handleWebhookEvent looks
+// up (provider, externalEventId) here FIRST — if found, return 200
+// immediately without re-running side effects. If not found, process THEN
+// insert, same transaction as the side effect where possible.
+model ProcessedWebhookEvent {
+  id               String          @id @default(cuid())
+  provider         PaymentProvider
+  externalEventId String @map("external_event_id") // the provider's own event.id
+  processedAt DateTime        @default(now()) @map("processed_at")
+
+  @@unique([provider, externalEventId])
+  @@map("processed_webhook_events")
+}
+
+// ============================================================
+// PROJECT / TASK CORE
+// ============================================================
+
+model Project {
+  channelLinks ChannelLink[]
+  id          String        @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdById String @map("created_by_id")
+  createdBy   User          @relation("ProjectCreator", fields: [createdById], references: [id])
+  // progress: COMPUTED at read time from task status counts, never stored —
+  // kills the "stale progress after status change" bug class entirely
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // step 1.4 (ADR-0006). The status new tasks start in (must be category TODO).
+  // Nullable ONLY because a project and its statuses reference each other, so one
+  // insert order has to go through null; WorkflowService keeps it non-null.
+  enforceTransitions      Boolean         @default(false) @map("enforce_transitions")
+  defaultWorkflowStatusId String?         @map("default_workflow_status_id")
+  defaultWorkflowStatus   WorkflowStatus? @relation("ProjectInitialStatus", fields: [defaultWorkflowStatusId], references: [id], onDelete: SetNull, map: "fk_projects_default_workflow_status")
+  workflowStatuses        WorkflowStatus[] @relation("ProjectWorkflowStatuses")
+  workflowTransitions     WorkflowTransition[]
+  iterations              Iteration[]
+  automations             Automation[]
+  savedViews              SavedView[]
+
+  tasks         Task[]
+  members       ProjectMember[]
+
+  @@index([workspaceId])
+  @@map("projects")
+}
+
+model Task {
+  automationWaits AutomationWait[]
+  automationMessages AutomationMessage[]
+  id          String       @id @default(cuid())
+  workspaceId String @map("workspace_id") // required — Inbox pattern lives on projectId, not this
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId String? @map("project_id") // optional — CONFIRMED: absence of project = Inbox,
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  // step 1.3 (ADR-0005). Subtasks: a tree of at most 3 levels, all in ONE project
+  // (so visibility and the task cap need no extra rules). NO ACTION: the
+  // database itself refuses to delete a task that still has children.
+  parentId String? @map("parent_id")
+  parent   Task?   @relation("TaskSubtasks", fields: [parentId], references: [id], onDelete: NoAction, map: "fk_tasks_parent_id")
+  children Task[]  @relation("TaskSubtasks")
+                            // no separate INBOX status needed
+
+  // step 1.1: permanent per-workspace number (see Workspace.key). Assigned from
+  // Workspace.nextTaskNumber inside the create transaction. Never reused, never changed.
+  number Int @map("number")
+
+  title       String
+  description String?
+  status      TaskStatus   @default(TODO) // INBOX dropped — was conflating
+                                            // "no project" with "workflow state"
+  // step 1.4 (ADR-0006). The specific status; `status` above is its CATEGORY and stays
+  // authoritative for every reader. Invariant (kept by WorkflowService, not an FK - a
+  // composite FK would null the NOT NULL `status` on project delete): when set,
+  // status == workflowStatus.category; every task with a project has one. SetNull so
+  // deleting a project (tasks fall back to the Inbox) is never blocked by it.
+  workflowStatusId String?        @map("workflow_status_id")
+  workflowStatus   WorkflowStatus? @relation("TaskWorkflowStatus", fields: [workflowStatusId], references: [id], onDelete: SetNull, map: "fk_tasks_workflow_status")
+  // step 1.5 (ADR-0007). Both optional; null = untyped / in no iteration (the backlog).
+  // SetNull: deleting a type or an iteration never deletes or blocks tasks.
+  issueTypeId String?     @map("issue_type_id")
+  issueType   IssueType?  @relation(fields: [issueTypeId], references: [id], onDelete: SetNull, map: "fk_tasks_issue_type")
+  iterationId String?     @map("iteration_id")
+  iteration   Iteration?  @relation(fields: [iterationId], references: [id], onDelete: SetNull, map: "fk_tasks_iteration")
+  // step 1.5 follow-up (ADR-0008). Story points; null = not estimated (counts as 0 points,
+  // reported separately). 0..1000, CHECK in the migration. Summed over LEAF tasks only.
+  estimate Float?
+
+  // step 1.6: PRs / branches / commits / messages attached to this task (read-only here;
+  // Phase 2 adapters write them).
+  externalLinks ExternalLink[]
+  automationRuns AutomationRun[]
+  priority    Priority?
+  createdById String @map("created_by_id")
+  createdBy   User         @relation("TaskCreator", fields: [createdById], references: [id])
+  assignees   User[]       @relation("TaskAssignees") // CONFIRMED: multi-assignee,
+                                                          // no single-owner concept
+  startDate DateTime? @map("start_date") // added for Gantt view (confirmed need — proper
+                          // duration bars, not just due-date markers).
+                          // App-layer rule: startDate must be <= dueDate
+                          // when both are set, not DB-expressible cleanly
+  dueDate DateTime? @map("due_date")
+  createdVia CreationMode @default(SNAP) @map("created_via")
+
+  isArchived Boolean      @default(false) @map("is_archived") // CONFIRMED: independent of status
+  archivedAt DateTime? @map("archived_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  dependenciesBlocking TaskDependency[] @relation("BlockingTask")
+  dependenciesBlocked  TaskDependency[] @relation("BlockedTask")
+  customValues  TaskCustomValue[] @relation("TaskCustomValues")
+  tags          TaskTag[]
+  snapClauses   SnapClause[]
+
+  // Step 1.7: list/count/progress. The two (scope, isArchived, createdAt DESC) indexes serve
+  // `ORDER BY createdAt DESC LIMIT n`; they replace the old single-column workspaceId/projectId
+  // indexes (leftmost prefix).
+  @@index([workspaceId, isArchived, createdAt(sort: Desc)], map: "idx_tasks_workspace_archived_created")
+  @@index([projectId, isArchived, createdAt(sort: Desc)], map: "idx_tasks_project_archived_created")
+  @@index([projectId, isArchived, status], map: "idx_tasks_project_archived_status")
+  @@index([workspaceId, status]) // supports computed-progress queries
+  @@unique([workspaceId, number], map: "uq_tasks_workspace_id_number")
+  @@index([parentId], map: "idx_tasks_parent_id")
+  @@index([workflowStatusId], map: "idx_tasks_workflow_status_id")
+  @@index([issueTypeId], map: "idx_tasks_issue_type_id")
+  @@index([iterationId], map: "idx_tasks_iteration_id")
+  @@map("tasks")
+}
+
+// step 1.4 (ADR-0006). A per-project status that rolls up to one of the four categories.
+// At most one isDefault per (project, category): partial unique index in the migration
+// (Prisma cannot declare it); WorkflowService enforces it under the project lock.
+model WorkflowStatus {
+  id                  String     @id @default(cuid())
+  projectId           String     @map("project_id")
+  project             Project    @relation("ProjectWorkflowStatuses", fields: [projectId], references: [id], onDelete: Cascade)
+  name                String
+  nameKey             String     @map("name_key") // lower-cased, NFKC, whitespace-collapsed; unique per project
+  color               String     @default("#94A3B8")
+  position            Int
+  category            TaskStatus
+  excludeFromProgress Boolean    @default(false) @map("exclude_from_progress")
+  isDefault           Boolean    @default(false) @map("is_default")
+  createdAt           DateTime   @default(now()) @map("created_at")
+  updatedAt           DateTime   @updatedAt @map("updated_at")
+
+  tasks             Task[]               @relation("TaskWorkflowStatus")
+  initialFor        Project[]            @relation("ProjectInitialStatus")
+  transitionsFrom   WorkflowTransition[] @relation("TransitionFrom")
+  transitionsTo     WorkflowTransition[] @relation("TransitionTo")
+
+  @@unique([projectId, nameKey], map: "uq_workflow_statuses_project_name_key")
+  @@index([projectId, position])
+  @@map("workflow_statuses")
+}
+
+model WorkflowTransition {
+  id           String         @id @default(cuid())
+  projectId    String         @map("project_id")
+  project      Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromStatusId String         @map("from_status_id")
+  fromStatus   WorkflowStatus @relation("TransitionFrom", fields: [fromStatusId], references: [id], onDelete: Cascade)
+  toStatusId   String         @map("to_status_id")
+  toStatus     WorkflowStatus @relation("TransitionTo", fields: [toStatusId], references: [id], onDelete: Cascade)
+
+  @@unique([fromStatusId, toStatusId], map: "uq_workflow_transitions_pair")
+  @@index([projectId])
+  @@map("workflow_transitions")
+}
+
+enum IssueTypeLevel {
+  EPIC
+  STANDARD
+  SUBTASK
+  @@map("issue_type_level")
+}
+
+enum IterationKind {
+  SPRINT
+  CYCLE
+  MILESTONE
+  @@map("iteration_kind")
+}
+
+enum IterationState {
+  PLANNED
+  ACTIVE
+  CLOSED
+  @@map("iteration_state")
+}
+
+// step 1.5 (ADR-0007). Workspace-level. `level` is a label for pickers and importers;
+// it is NOT enforced against subtask nesting (ADR-0005 owns the hierarchy rules).
+model IssueType {
+  id          String         @id @default(cuid())
+  workspaceId String         @map("workspace_id")
+  workspace   Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  nameKey     String         @map("name_key") // same normalisation as tags; unique per workspace
+  icon        String?
+  color       String         @default("#94A3B8")
+  level       IssueTypeLevel @default(STANDARD)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@unique([workspaceId, nameKey], map: "uq_issue_types_workspace_name_key")
+  @@map("issue_types")
+}
+
+// step 1.5 (ADR-0007). Whole-workspace (projectId null) or one project's. Scope is fixed at
+// creation. Dates are calendar dates. Closed iterations take no new tasks; they can be reopened.
+model Iteration {
+  id           String         @id @default(cuid())
+  workspaceId  String         @map("workspace_id")
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId    String?        @map("project_id")
+  project      Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind         IterationKind
+  name         String
+  goal         String?
+  startDate    DateTime?      @map("start_date") @db.Date
+  endDate      DateTime?      @map("end_date") @db.Date
+  state        IterationState @default(PLANNED)
+  closedAt     DateTime?      @map("closed_at")
+  // What closing did: {unfinished, action: LEAVE|MOVE|BACKLOG, movedToId, completed}.
+  closeSummary Json?          @map("close_summary")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  tasks Task[]
+
+  @@index([workspaceId, state])
+  @@index([projectId])
+  @@map("iterations")
+}
+
+enum ExternalLinkKind {
+  PR
+  ISSUE
+  COMMIT
+  BRANCH
+  MESSAGE
+  THREAD
+  @@map("external_link_kind")
+}
+
+/// step 1.6 (diagram 11). A pointer from a task to something in another system. Written only
+/// by Phase 2 adapters (through DomainWriter); step 1.6 adds the model and the read.
+/// `(taskId, provider, kind, externalId)` is the upsert key, so re-delivering a webhook
+/// updates `state` / `lastSeenAt` instead of duplicating. `state` is the provider's own word
+/// (open / merged / closed ...), null for kinds that have none (a message). `url` is stored
+/// only if it is http(s) (CHECK) because the UI renders it as a link.
+model ExternalLink {
+  id         String              @id @default(cuid())
+  taskId     String              @map("task_id")
+  task       Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  provider   IntegrationProvider
+  kind       ExternalLinkKind
+  externalId String              @map("external_id")
+  url        String
+  title      String
+  state      String?
+  lastSeenAt DateTime            @default(now()) @map("last_seen_at")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  @@unique([taskId, provider, kind, externalId], map: "uq_external_links_task_provider_kind_external_id")
+  @@index([provider, kind, externalId], map: "idx_external_links_provider_kind_external_id")
+  @@map("external_links")
+}
+
+model TaskDependency {
+  id             String         @id @default(cuid())
+  blockingTaskId String @map("blocking_task_id")
+  blockingTask   Task           @relation("BlockingTask", fields: [blockingTaskId], references: [id], onDelete: Cascade)
+  blockedTaskId String @map("blocked_task_id")
+  blockedTask    Task           @relation("BlockedTask", fields: [blockedTaskId], references: [id], onDelete: Cascade)
+  type           DependencyType @default(BLOCKS) // REQUIRES dropped — redundant with BLOCKS
+  createdAt DateTime       @default(now()) @map("created_at")
+  // Cycle prevention enforced at the app layer on write — not expressible
+  // as a Postgres/Prisma constraint.
+
+  @@unique([blockingTaskId, blockedTaskId])
+  @@map("task_dependencies")
+}
+
+// ============================================================
+// COLLABORATION
+// ============================================================
+
+// ONE model, not two (was TaskComment + ProjectComment, structurally
+// identical). targetType covers Task, Project, AND Activity — engaging
+// with a feed entry uses the same mechanism as commenting on a task.
+// targetId is polymorphic — same Prisma limitation as Invite above, no
+// native relation; resolved at the app layer via targetType branching.
+model Comment {
+  id     String          @id @default(cuid())
+  targetType CommentableType @map("target_type")
+  targetId String @map("target_id") // no @relation — polymorphic, see note above
+  authorId String @map("author_id")
+  author   User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content  String
+  parentCommentId String? @map("parent_comment_id") // ONE level only — app-enforced: a comment with
+                            // a parentCommentId can't itself be a parent
+  parentComment   Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         Comment[] @relation("CommentReplies")
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  editedAt DateTime? @map("edited_at")
+
+  mentions  Mention[]
+
+  @@index([targetType, targetId])
+  @@map("comments")
+}
+
+// Generalized from the old CommentReaction — now targets Comment OR Activity.
+// targetId is polymorphic, same pattern as above — no native relation.
+model Reaction {
+  id         String        @id @default(cuid())
+  targetType ReactableType @map("target_type")
+  targetId String @map("target_id")
+  userId String @map("user_id")
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reaction   ReactionType
+  createdAt DateTime      @default(now()) @map("created_at")
+
+  @@unique([targetType, targetId, userId, reaction])
+  @@index([targetType, targetId])
+  @@map("reactions")
+}
+
+model Mention {
+  id              String   @id @default(cuid())
+  commentId String @map("comment_id")
+  comment         Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  mentionedUserId String @map("mentioned_user_id")
+  mentionedUser   User     @relation("MentionedUser", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("mentions")
+}
+
+// ============================================================
+// CUSTOM FIELDS & TAGS
+// ============================================================
+
+model CustomField {
+  id          String    @id @default(cuid())
+  workspaceId String @map("workspace_id") // workspace-wide, NOT per-project — Inbox tasks
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  key         String
+  dataType FieldType @map("data_type")
+  options     Json?     // choices, SELECT/MULTI_SELECT only
+  order       Int       @default(0)
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  values TaskCustomValue[]
+
+  @@unique([workspaceId, key])
+  @@map("custom_fields")
+}
+
+model TaskCustomValue {
+  id      String      @id @default(cuid())
+  taskId String @map("task_id")
+  task    Task        @relation("TaskCustomValues", fields: [taskId], references: [id], onDelete: Cascade)
+  fieldId String @map("field_id")
+  field   CustomField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+  value   Json        // VALIDATED against field.dataType (and field.options
+                        // for SELECT types) at every write — non-negotiable
+
+  // Task.customFields dropped entirely — this is the ONE mechanism now
+
+  @@unique([taskId, fieldId])
+  @@map("task_custom_values")
+}
+
+model Tag {
+  id          String    @id @default(cuid())
+  workspaceId String @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String // display form: whitespace-collapsed + trimmed, user's casing kept
+  // step 0.8: normalized form (NFKC, whitespace-collapsed, trimmed, lower-cased)
+  // - what uniqueness is enforced on, so "Bug" and "bug" are the same tag.
+  // Always derived by normalizeTagName(); never accepted from a request.
+  nameKey     String    @map("name_key")
+
+  tasks TaskTag[]
+
+  @@unique([workspaceId, nameKey], map: "uq_tags_workspace_id_name_key")
+  @@map("tags")
+}
+
+model TaskTag {
+  taskId String @map("task_id")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  tagId String @map("tag_id")
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([taskId, tagId])
+  @@map("task_tags")
+}
+
+// ============================================================
+// ACTIVITY & NOTIFICATIONS
+// ============================================================
+
+// Task/Project work ONLY — account-level events go to AuditLog instead
+// (CONFIRMED: kept as two separate streams, different retention/visibility)
+model Activity {
+  id         String             @id @default(cuid())
+  channelDeliveries ChannelDelivery[]
+  actorId String? @map("actor_id") // OPTIONAL — nullable for system-generated
+                                  // events (e.g. scheduled due-date reminders)
+                                  // that have no human actor. Found while
+                                  // designing the Activity & Notifications
+                                  // module — DUE_DATE_APPROACHING needed a
+                                  // producer with no user to attribute it to.
+  actor      User?              @relation(fields: [actorId], references: [id])
+  action     ActivityAction
+  visibility ActivityVisibility @default(TIMELINE) // SILENT = drives
+                                  // notifications/audit only, never rendered
+                                  // in the visible feed (reactions, watches)
+  targetType ActivityTargetType @map("target_type") // distinctly named per the naming-collision
+  targetId String @map("target_id") // fix from the graphing pass
+  workspaceId String @map("workspace_id") // denormalized for fast per-workspace feed queries
+  metadata   Json?               // {field, oldValue, newValue} for change events
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  @@index([workspaceId, createdAt])
+  @@index([targetType, targetId])
+  @@map("activities")
+}
+
+// Account-level, admin-only, separate retention policy (CONFIRMED separate)
+model AuditLog {
+  id        String     @id @default(cuid())
+  actorId String @map("actor_id")
+  actor     User       @relation(fields: [actorId], references: [id])
+  action    AuditAction
+  accountId String @map("account_id")
+  account   Account    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  metadata  Json?
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@index([accountId, createdAt])
+  @@map("audit_logs")
+}
+
+model Watch {
+  id         String            @id @default(cuid())
+  userId String @map("user_id")
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetType WatchableType @map("target_type")
+  targetId String @map("target_id")
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@unique([userId, targetType, targetId])
+  @@map("watches")
+}
+
+// Always granular at storage — grouping/digest happens at READ time in the
+// client, never baked into writes (same principle as pagination elsewhere)
+model Notification {
+  id     String            @id @default(cuid())
+  userId String @map("user_id")
+  user   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type   NotificationType
+
+  // FIX from the graphing pass: was sourceActivityId?/sourceAuditLogId? —
+  // two nullable FKs, the exact pattern we removed from Activity itself.
+  // One discriminated pair instead, for consistency. Polymorphic — no
+  // native Prisma relation, resolved at the app layer, same as Comment/
+  // Reaction/Invite above.
+  sourceType NotificationSourceType @map("source_type")
+  sourceId String @map("source_id")
+
+  readAt DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  deliveries NotificationDelivery[]
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model NotificationDelivery {
+  id             String            @id @default(cuid())
+  notificationId String @map("notification_id")
+  notification   Notification      @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  status         DeliveryStatus    @default(PENDING)
+  sentAt DateTime? @map("sent_at")
+  error          String?
+
+  @@index([notificationId])
+  @@map("notification_deliveries")
+}
+
+// ============================================================
+// SNAP MODE (per uploaded spec — Option B, normalized)
+// ============================================================
+
+model SnapSession {
+  id                String            @id @default(cuid())
+  userId String @map("user_id")
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspaceId String? @map("workspace_id") // orgId DROPPED — derivable via workspace.account
+
+  rawInput String @map("raw_input")
+  anonymizedInput String @map("anonymized_input")
+  inputLength Int @map("input_length")
+  wordCount Int @map("word_count")
+  hasMentions Boolean @map("has_mentions")
+  hasTags Boolean @map("has_tags")
+  hasSymbols Boolean @map("has_symbols")
+  hasEmails Boolean @map("has_emails")
+
+  consentGiven Boolean @map("consent_given")
+  dataRetentionDays Int @map("data_retention_days")
+
+  status            SnapSessionStatus @default(PARSING)
+  previousSessionId String? @map("previous_session_id") // cheap placeholder for future multi-turn
+                                        // context — NOT wired up yet, no confirmed need
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  clauses SnapClause[]
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("snap_sessions")
+}
+
+model SnapClause {
+  id         String @id @default(cuid())
+  sessionId String @map("session_id")
+  session    SnapSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clauseIndex Int @map("clause_index")
+  text        String
+  charStart Int @map("char_start")
+  charEnd Int @map("char_end")
+
+  // Model 1 — segmentation
+  m1Confidence Float? @map("m1_confidence")
+  m1TimeMs Int? @map("m1_time_ms")
+
+  // Model 2 — action classification
+  predictedAction SnapActionType? @map("predicted_action") // ENUM now, not String — was the one
+  actionConfidence Float? @map("action_confidence") // real validation gap in the uploaded spec
+  m2TimeMs Int? @map("m2_time_ms")
+
+  // Model 3 — entity extraction
+  extractedEntities Json? @map("extracted_entities") // validated against predictedAction's expected
+  entityConfidence Float? @map("entity_confidence") // entity shape at write time (same discipline
+  m3TimeMs Int? @map("m3_time_ms") // as Custom Field values)
+
+  fuzzyMatchesUsed Json? @map("fuzzy_matches_used") // moved here from session-level — per-clause granularity
+
+  // HITL review
+  reviewStatus SnapReviewStatus @default(PENDING) @map("review_status")
+  correctedAction SnapActionType? @map("corrected_action")
+  correctedEntities Json? @map("corrected_entities")
+  correctionType CorrectionType? @map("correction_type")
+  rejectionReason String? @map("rejection_reason")
+  userRating SnapRating? @map("user_rating") // ENUM now, not String
+
+  // Execution — MUST go through TaskService/ProjectService/WorkspaceService,
+  // never write Task/Project/Workspace directly (see design note in graph:
+  // otherwise Snap-created items silently skip Activity logging and
+  // notification fan-out — a 3rd parallel write path)
+  executedAction SnapActionType? @map("executed_action")
+  executedAt DateTime? @map("executed_at")
+  executionError String? @map("execution_error")
+  executionTimeMs Int? @map("execution_time_ms")
+
+  // If execution created a real Task, link it (nullable — not every clause
+  // creates a Task; some create Projects or Workspaces)
+  createdTaskId String? @map("created_task_id")
+  createdTask   Task?    @relation(fields: [createdTaskId], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([sessionId, clauseIndex])
+  @@index([predictedAction, reviewStatus])
+  @@index([correctedAction, correctionType])
+  @@map("snap_clauses")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum AccountType {
+  PERSONAL
+  ORGANIZATION
+  @@map("account_type")
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+  CLIENT // ProjectMember-only in practice, but shared enum for simplicity
+  @@map("role")
+}
+
+enum CollaboratorRole {
+  VIEWER
+  COMMENTER
+  CONTRIBUTOR
+  @@map("collaborator_role")
+}
+
+enum TeamIcon {
+  USERS
+  MEGAPHONE
+  CODE
+  BRUSH
+  ROCKET
+  // ...remaining icon set carried forward unchanged from the original schema
+  @@map("team_icon")
+}
+
+enum InviteTargetType {
+  ACCOUNT
+  WORKSPACE
+  TEAM
+  PROJECT
+  @@map("invite_target_type")
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ON_HOLD
+  COMPLETED
+  ARCHIVED
+  @@map("project_status")
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  // INBOX removed — absence of projectId represents Inbox now
+  @@map("task_status")
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  @@map("priority")
+}
+
+enum CreationMode {
+  SNAP
+  FOCUS
+  MANUAL
+  // step 0.6: added ahead of their consumers (Phase 1 imports, Phase 3
+  // templates, Phase 2 integrations respectively). Nothing sets these
+  // three yet; TasksService.create still only ever writes SNAP/FOCUS/MANUAL.
+  IMPORT
+  TEMPLATE
+  INTEGRATION
+  /// step 5.2: a write made by an automation rule (WriteContext.automation says which, and how deep)
+  AUTOMATION
+  @@map("creation_mode")
+}
+
+enum DependencyType {
+  BLOCKS
+  RELATES_TO
+  // REQUIRES removed — was functionally identical to BLOCKS
+  @@map("dependency_type")
+}
+
+enum CommentableType {
+  TASK
+  PROJECT
+  ACTIVITY
+  @@map("commentable_type")
+}
+
+enum ReactableType {
+  COMMENT
+  ACTIVITY
+  @@map("reactable_type")
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  CELEBRATE
+  THINKING
+  @@map("reaction_type")
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  DATE
+  SELECT
+  MULTI_SELECT
+  CHECKBOX
+  USER
+  URL
+  @@map("field_type")
+}
+
+enum ActivityAction {
+  PARENT_CHANGED // step 1.3; metadata {from, to}
+  TASK_MOVED // step 1.3; project change of a task/subtree; metadata {from, to, descendants}
+  ISSUE_TYPE_CHANGED // step 1.5; metadata {from, to}
+  ITERATION_CHANGED // step 1.5; metadata {from, to}
+  WORKFLOW_CHANGED // step 1.4 (ADR-0006); project-level: status created/edited/deleted/reordered, transitions, settings; metadata {op, ...}
+  CREATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  DUE_DATE_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  DESCRIPTION_UPDATED
+  COMMENTED
+  MENTIONED
+  ARCHIVED
+  RESTORED
+  DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED
+  DUE_DATE_APPROACHING // system-generated (scheduled job), actorId null,
+                        // visibility SILENT — see Activity & Notifications
+                        // module design note
+  ATTACHMENT_ADDED     // fires on Attachment CONFIRM, never on upload-URL
+                        // issuance — an abandoned/never-confirmed upload
+                        // must never appear in the feed
+  TAG_ADDED            // step 0.8: tag attached to a task. TIMELINE, metadata
+                        // {tagId, tagName}. No notification (FanoutService no-op).
+  TAG_REMOVED          // step 0.8: tag detached from a task. Same shape.
+  EXTERNAL_LINKED      // step 2.6: a PR / issue / commit / branch was linked to the task by an integration. TIMELINE for PR+ISSUE, SILENT
+                        // for COMMIT+BRANCH (no channel flood). metadata {provider, kind, ref, title, login?}. No in-app notification.
+  IMPORTED_CHANGE      // step 4.6: one field change copied from an import source's history. Always visibility IMPORTED,
+                        // original timestamp, metadata {field, from, to, externalId, actor:{externalId?,name?}, source, importJobId}
+  REACTED              // comment reaction: written SILENT with targetType
+                        // COMMENT by ReactionsService; FanoutService turns it
+                        // into a REACTION_RECEIVED notification for the
+                        // comment author. (Was referenced by code but missing
+                        // from this enum — caught by tsc, fixed pre-baseline.)
+  @@map("activity_action")
+}
+
+enum ActivityVisibility {
+  TIMELINE
+  SILENT
+  IMPORTED // step 4.6: history copied from another system. Never in the workspace feed; shown only on the task's own
+           // history (GET /activities?targetType=TASK&targetId=..&includeImported=true)
+  @@map("activity_visibility")
+}
+
+// Distinctly named per the naming-collision fix — NOT shared with
+// CommentableType/ReactableType/WatchableType despite similar shape
+enum ActivityTargetType {
+  TASK
+  PROJECT
+  COMMENT
+  @@map("activity_target_type")
+}
+
+enum WatchableType {
+  TASK
+  PROJECT
+  @@map("watchable_type")
+}
+
+enum AuditAction {
+  WORKSPACE_KEY_CHANGED // step 1.1; metadata {workspaceId, from, to}
+  MEMBER_ADDED
+  MEMBER_REMOVED
+  ROLE_CHANGED
+  PLAN_CHANGED
+  BILLING_UPDATED
+  TEAM_CREATED
+  ACCOUNT_SETTINGS_CHANGED
+  // step 0.6: no caller yet (AuditLogService.record() is a thin
+  // pass-through, see its class doc). Arrive with their phase:
+  // INTEGRATION_* Phase 2, IMPORT_* Phase 4, TEMPLATE_* Phase 3.
+  INTEGRATION_CONNECTED
+  INTEGRATION_DISCONNECTED
+  INTEGRATION_SUBSCRIPTION_DISABLED // step 2.3: repeated delivery failures; metadata.system = true (alert reaches every admin)
+  INTEGRATION_NEEDS_REAUTH // step 2.1: refresh failed / token revoked at the provider
+  INTEGRATION_IDENTITY_LINKED // step 2.2
+  INTEGRATION_IDENTITY_UNLINKED // step 2.2
+  IMPORT_STARTED
+  IMPORT_COMPLETED
+  IMPORT_ROLLED_BACK
+  TEMPLATE_PUBLISHED
+  TEMPLATE_APPLIED
+  @@map("audit_action")
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  MENTIONED
+  COMMENT_REPLY
+  STATUS_CHANGED
+  DUE_DATE_APPROACHING
+  REACTION_RECEIVED
+  ACCOUNT_ALERT
+  // ADDED — Activity & Notifications module. One distinct NotificationType
+  // per remaining ActivityAction in the "assignees + creator" recipient
+  // bucket, none of which had a matching type before (explicit decision:
+  // granular over one generic TASK_UPDATED, so per-type notification
+  // preferences in UserPreferences.notificationSettings can actually
+  // distinguish them).
+  TASK_CREATED         // ActivityAction.CREATED
+  PRIORITY_CHANGED     // ActivityAction.PRIORITY_CHANGED
+  DUE_DATE_CHANGED     // ActivityAction.DUE_DATE_CHANGED
+  DESCRIPTION_UPDATED  // ActivityAction.DESCRIPTION_UPDATED
+  TASK_ARCHIVED        // ActivityAction.ARCHIVED
+  TASK_RESTORED        // ActivityAction.RESTORED
+  DEPENDENCY_ADDED     // ActivityAction.DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED   // ActivityAction.DEPENDENCY_REMOVED
+  ATTACHMENT_ADDED     // ActivityAction.ATTACHMENT_ADDED
+  TASK_UNASSIGNED      // ActivityAction.UNASSIGNED
+  // Step 5.14 — a rule's own message (NOTIFY); the text is in automation_messages
+  AUTOMATION_MESSAGE
+  @@map("notification_type")
+}
+
+enum NotificationSourceType {
+  ACTIVITY
+  AUDIT_LOG
+  /// a row of automation_messages (step 5.14)
+  AUTOMATION_MESSAGE
+  @@map("notification_source_type")
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  @@map("notification_channel")
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+  @@map("delivery_status")
+}
+
+enum SnapSessionStatus {
+  PARSING
+  REVIEWING
+  APPROVED
+  PARTIAL
+  EXECUTED
+  FAILED
+  EXPIRED
+  @@map("snap_session_status")
+}
+
+enum SnapReviewStatus {
+  PENDING
+  APPROVED
+  CORRECTED
+  REJECTED
+  SKIPPED
+  @@map("snap_review_status")
+}
+
+enum SnapActionType {
+  CREATE_WORKSPACE
+  CREATE_PROJECT
+  CREATE_TASK
+  UPDATE_TASK
+  ASSIGN_TASK
+  ADD_TAG
+  SET_DUE_DATE
+  @@map("snap_action_type")
+}
+
+enum SnapRating {
+  THUMBS_UP
+  THUMBS_DOWN
+  @@map("snap_rating")
+}
+
+enum CorrectionType {
+  ACTION_ONLY
+  PAYLOAD_ONLY
+  FULL_CORRECTION
+  @@map("correction_type")
+}
+
+// Canonical 6 tiers, per BILLING_SETUP.md — replaces the old unused
+// PlanType enum (FREE/FREETRIAL/BASIC/PRO/LIFETIME/ENTERPRISE, which never
+// matched anything actually built). These names map exactly to
+// BILLING_TIERS config keys — one source of truth, no drift possible
+// between "what plans exist" and "what the enum allows."
+enum AttachmentableType {
+  TASK
+  PROJECT
+  COMMENT
+  @@map("attachmentable_type")
+}
+
+enum AttachmentStatus {
+  PENDING
+  CONFIRMED
+  @@map("attachment_status")
+}
+
+enum StorageProvider {
+  S3_COMPATIBLE // AWS S3, Cloudflare R2, MinIO, etc. — one implementation
+                 // needed initially; unlike PaymentProvider this isn't
+                 // solving an active blocking constraint (no known Tunisia-
+                 // style restriction on object storage specifically), kept
+                 // behind an interface for vendor-lock-in avoidance / good
+                 // practice, not urgency
+  @@map("storage_provider")
+}
+
+enum ShareableType {
+  TASK
+  PROJECT
+  @@map("shareable_type")
+}
+
+enum SharePermission {
+  VIEW
+  @@map("share_permission")
+}
+
+enum PlanKey {
+  FREE_PERSONAL
+  PRO_PERSONAL
+  FREE_ORG
+  STARTER_ORG
+  PROFESSIONAL_ORG
+  ENTERPRISE_ORG
+  @@map("plan_key")
+}
+
+// Multi-provider billing, added per the Tunisia payment-access constraint.
+// STRIPE: kept in the abstraction, dormant until either Tunisia's pending
+//   Foreign Exchange Code reform lands in practice (BCT circulars not yet
+//   issued as of this design pass) OR a foreign entity is incorporated.
+// MOR: Paddle or Lemon Squeezy (specific choice is an implementation-level
+//   swap behind the same interface, not baked into this enum) — handles
+//   international customers (USD/EUR) as merchant of record, meaning THEY
+//   remit tax/VAT, not this business.
+// TUNISIA_GATEWAY: a Tunisia-focused processor (e.g. Paymee) for local
+//   customers — accepts TND and, per that provider's own docs, foreign
+//   cards too, so it may already normalize currency rather than requiring
+//   separate TND-only pricing.
+enum PaymentProvider {
+  STRIPE
+  MOR
+  TUNISIA_GATEWAY
+  @@map("payment_provider")
+}
+
+/// step 0.6: no table references this yet - Phase 2's IntegrationConnection
+/// is the first. Values confirmed against diagram 12 (erd-integrations-import):
+/// "CLICKUP | JIRA | LINEAR | GITHUB | SLACK | DISCORD". JIRA = Jira Cloud
+/// specifically (PLAN.md's own wording), not Server/Data Center.
+enum IntegrationProvider {
+  DISCORD
+  SLACK
+  GITHUB
+  CLICKUP
+  JIRA
+  LINEAR
+  ASANA
+  MONDAY
+  NOTION
+  @@map("integration_provider")
+}
+
+/// step 0.9. Delivery-id dedupe for provider webhooks (GitHub, future
+/// Jira/Linear/Slack/Discord). Deliberately separate from ProcessedWebhookEvent,
+/// which is keyed on the PaymentProvider enum. A row means "this delivery id has
+/// been accepted for processing"; inserted ONLY after the signature verified
+/// (an unauthenticated caller must never be able to write here), deleted again
+/// if the enqueue that follows fails, and swept after 7 days.
+model IntegrationWebhookEvent {
+  id         String              @id @default(cuid())
+  provider   IntegrationProvider
+  deliveryId String              @map("delivery_id")
+  receivedAt DateTime            @default(now()) @map("received_at")
+
+  @@unique([provider, deliveryId], map: "uq_integration_webhook_events_provider_delivery_id")
+  @@index([receivedAt], map: "idx_integration_webhook_events_received_at")
+  @@map("integration_webhook_events")
+}
+
+/// step 0.6. Outside account RBAC entirely (PLAN.md: "No platform-staff
+/// concept -> User.platformRole for moderation"; diagram 18:
+/// "platformRole >= MODERATOR... outside account RBAC: new User.platformRole
+/// + guard") - a separate axis from Role (OWNER/ADMIN/MEMBER/VIEWER/CLIENT),
+/// which is per-account. No caller yet - Phase 6's moderation queue is the
+/// first; PlatformGuard/@RequirePlatformRole() exist starting this step
+/// regardless.
+enum PlatformRole {
+  NONE
+  MODERATOR
+  ADMIN
+  @@map("platform_role")
+}
+
+// ---------------------------------------------------------------- step 2.1 (ADR-0009)
+
+enum IntegrationConnectionStatus {
+  ACTIVE
+  NEEDS_REAUTH
+  REVOKED
+  ERROR
+  @@map("integration_connection_status")
+}
+
+enum OAuthStatePurpose {
+  CONNECT
+  IDENTITY
+  @@map("oauth_state_purpose")
+}
+
+enum IdentityLinkMethod {
+  AUTO_EMAIL
+  OAUTH_LINK
+  MANUAL
+  SKIPPED
+  LINK_TOKEN // step 2.2: proved by a one-time link delivered only to the chat user
+  @@map("identity_link_method")
+}
+
+enum ChannelLinkKind {
+  CHANNEL
+  GUILD
+  REPO
+  @@map("channel_link_kind")
+}
+
+enum ChannelDeliveryStatus {
+  SENT
+  FAILED
+  SKIPPED
+  PENDING // step 2.3: row written by the router before the notify.deliver job runs (idempotency anchor)
+  @@map("channel_delivery_status")
+}
+
+/// Single-use state for one OAuth/install round trip. `nonce` IS the `state` query value.
+/// `pkceVerifier` is vault-encrypted (null for providers without PKCE).
+model OAuthState {
+  id           String              @id @default(cuid())
+  provider     IntegrationProvider
+  /// CONNECT = admin connecting a provider tenant (2.1); IDENTITY = a user linking their own provider identity to `connectionId` (2.2).
+  purpose      OAuthStatePurpose   @default(CONNECT)
+  connectionId String?             @map("connection_id")
+  connection   IntegrationConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  nonce        String              @unique(map: "uq_oauth_states_nonce")
+  pkceVerifier String?             @map("pkce_verifier")
+  userId       String              @map("user_id")
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId    String              @map("account_id")
+  account      Account             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  expiresAt    DateTime            @map("expires_at")
+  consumedAt   DateTime?           @map("consumed_at")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  @@index([expiresAt], map: "idx_oauth_states_expires_at")
+  @@map("oauth_states")
+}
+
+/// One provider account (guild / team / installation) connected to one Account. REVOKED rows are
+/// kept (ADR-0009 d.3): credentials deleted, channel links paused, reconnect revives the row.
+model IntegrationConnection {
+  id                  String                      @id @default(cuid())
+  accountId           String                      @map("account_id")
+  account             Account                     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  provider            IntegrationProvider
+  externalAccountId   String                      @map("external_account_id")
+  externalAccountName String                      @map("external_account_name")
+  scopes              String[]
+  status              IntegrationConnectionStatus @default(ACTIVE)
+  lastError           String?                     @map("last_error")
+  createdById         String                      @map("created_by_id")
+  createdBy           User                        @relation(fields: [createdById], references: [id])
+  lastUsedAt          DateTime?                   @map("last_used_at")
+  createdAt           DateTime                    @default(now()) @map("created_at")
+  updatedAt           DateTime                    @updatedAt @map("updated_at")
+
+  credential   IntegrationCredential?
+  identityLinks IdentityLink[]
+  identityLinkTokens IdentityLinkToken[]
+  channelLinks ChannelLink[]
+  oauthStates  OAuthState[]
+  importJobs   ImportJob[]
+  externalRefs ExternalRef[]
+
+  @@unique([accountId, provider, externalAccountId], map: "uq_integration_connections_account_provider_external")
+  @@index([accountId, status], map: "idx_integration_connections_account_status")
+  @@map("integration_connections")
+}
+
+/// Never selected by any API response (ADR-0009 d.5). `ciphertext` is the TokenVault self-describing
+/// string (v1:kid:iv:tag:ct); `kid` is denormalised from it so key rotation can find stale rows.
+model IntegrationCredential {
+  id           String                @id @default(cuid())
+  connectionId String                @unique(map: "uq_integration_credentials_connection_id") @map("connection_id")
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  kid          String
+  ciphertext   String
+  expiresAt    DateTime?             @map("expires_at")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@index([kid], map: "idx_integration_credentials_kid")
+  @@map("integration_credentials")
+}
+
+/// Table only in 2.1; logic arrives in 2.2.
+model IdentityLink {
+  id             String                @id @default(cuid())
+  connectionId   String                @map("connection_id")
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalUserId String                @map("external_user_id")
+  externalEmail  String?               @map("external_email")
+  userId         String?               @map("user_id")
+  user           User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  method         IdentityLinkMethod
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  @@unique([connectionId, externalUserId], map: "uq_identity_links_connection_external_user")
+  @@index([userId], map: "idx_identity_links_user_id")
+  @@map("identity_links")
+}
+
+/// Table only in 2.1 (+ `pausedAt`, set by revoke). Logic arrives in 2.4-2.6.
+model ChannelLink {
+  id             String                @id @default(cuid())
+  connectionId   String                @map("connection_id")
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  kind           ChannelLinkKind
+  externalId     String                @map("external_id")
+  workspaceId    String                @map("workspace_id")
+  workspace      Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  projectId      String?               @map("project_id")
+  project        Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  configuredById String                @map("configured_by_id")
+  configuredBy   User                  @relation(fields: [configuredById], references: [id])
+  pausedAt       DateTime?             @map("paused_at")
+  /// step 2.6: provider-specific settings. REPO links: {repoFullName, statusRules: {prOpened?, prMerged?, prClosed?}} (ADR-0014).
+  config         Json?
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+
+  subscriptions ChannelSubscription[]
+
+  @@unique([connectionId, kind, externalId], map: "uq_channel_links_connection_kind_external")
+  @@index([workspaceId], map: "idx_channel_links_workspace_id")
+  @@index([projectId], map: "idx_channel_links_project_id")
+  @@map("channel_links")
+}
+
+/// Table only in 2.1; the router arrives in 2.3.
+model ChannelSubscription {
+  id            String             @id @default(cuid())
+  channelLinkId String             @map("channel_link_id")
+  channelLink   ChannelLink        @relation(fields: [channelLinkId], references: [id], onDelete: Cascade)
+  events        ActivityAction[]
+  minVisibility ActivityVisibility @default(TIMELINE) @map("min_visibility")
+  enabled       Boolean            @default(true)
+  failureCount  Int                @default(0) @map("failure_count")
+  /// Set when the router disabled it after repeated failures; cleared on re-enable.
+  disabledReason String?           @map("disabled_reason")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  updatedAt     DateTime           @updatedAt @map("updated_at")
+
+  deliveries ChannelDelivery[]
+
+  @@index([channelLinkId], map: "idx_channel_subscriptions_channel_link_id")
+  @@map("channel_subscriptions")
+}
+
+/// Table only in 2.1; written by the router in 2.3. One row per (subscription, activity): idempotent.
+model ChannelDelivery {
+  id             String                     @id @default(cuid())
+  subscriptionId String                     @map("subscription_id")
+  subscription   ChannelSubscription        @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  activityId     String                     @map("activity_id")
+  activity       Activity                   @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  status         ChannelDeliveryStatus
+  attempts       Int                        @default(0)
+  error          String?
+  createdAt      DateTime                   @default(now()) @map("created_at")
+  updatedAt      DateTime                   @updatedAt @map("updated_at")
+
+  @@unique([subscriptionId, activityId], map: "uq_channel_deliveries_subscription_activity")
+  @@index([subscriptionId, createdAt], map: "idx_channel_deliveries_subscription_created")
+  @@index([activityId], map: "idx_channel_deliveries_activity_id")
+  @@index([createdAt], map: "idx_channel_deliveries_created_at")
+  @@map("channel_deliveries")
+}
+
+// ---------------------------------------------------------------------------------------------------
+// step 4.1 (diagrams 04, 05, 12). Import core. The state machine lives in src/imports/import-state-machine.ts;
+// the column is the source of truth, every transition is a compare-and-set UPDATE ... WHERE status = <from>.
+// ---------------------------------------------------------------------------------------------------
+
+enum ImportJobStatus {
+  DRAFT
+  SOURCES_SELECTED
+  MAPPING
+  PREVIEW_READY
+  QUEUED
+  RUNNING
+  PAUSED
+  COMPLETED
+  COMPLETED_WITH_WARNINGS
+  FAILED
+  CANCELED
+  ROLLING_BACK
+  ROLLED_BACK
+  @@map("import_job_status")
+}
+
+enum ImportIssueSeverity {
+  INFO
+  WARN
+  ERROR
+  @@map("import_issue_severity")
+}
+
+model ImportJob {
+  id           String                @id @default(cuid())
+  connectionId String                @map("connection_id")
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  workspaceId  String                @map("workspace_id")
+  workspace    Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdById  String                @map("created_by_id")
+  createdBy    User                  @relation("ImportJobCreator", fields: [createdById], references: [id])
+  status       ImportJobStatus       @default(DRAFT)
+
+  /// What to import: provider-specific ids (spaces / teams / projects / repos). Shape: ImportSelection.
+  selection      Json?
+  /// User overrides on top of the engine's suggestions (step 4.3 owns the shape; 4.1 stores it opaque).
+  mappingConfig  Json?          @map("mapping_config")
+  /// Dry-run report: counts, warnings, plan impact (ImportPreviewSummary).
+  previewSummary Json?          @map("preview_summary")
+  /// Everything in the source the person may map (MappingInventory), stored at preview (step 4.3). Bounded; never sent in the job view.
+  inventory      Json?
+  /// Live counters (ImportProgress). Read by the report and pushed over SSE by the executor.
+  progress       Json?
+  /// Where a resumed run continues: phase + cursor (ImportCheckpoint). Cleared when the job is finished.
+  checkpoint     Json?
+  /// comments / attachments / history / dates switches (ImportOptions).
+  options        Json
+  /// Step 4.9: what a finished job produced besides rows: for an import-as-template, `{ kind: 'TEMPLATE', templateId, ... }`.
+  result         Json?
+
+  /// Bumped on every start / resume; part of the queue jobId so a resume is never swallowed by BullMQ's dedupe.
+  attempt        Int       @default(0)
+  /// Set by the executor when it pauses (rate limit, reauth, quota) - shown to the user.
+  pauseReason    String?   @map("pause_reason")
+  startedAt      DateTime? @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  issues       ImportJobIssue[]
+  refs         ExternalRef[]
+  pendingLinks ImportPendingLink[]
+  fileItems    ImportFileItem[]
+
+  @@index([workspaceId, createdAt], map: "idx_import_jobs_workspace_created")
+  @@index([connectionId, status], map: "idx_import_jobs_connection_status")
+  @@index([status], map: "idx_import_jobs_status")
+  @@map("import_jobs")
+}
+
+/// Provider object <-> local row. THE idempotency key of re-running an import (unique on
+/// connection + externalType + externalId) and the index rollback walks (by importJobId). `localId` is
+/// deliberately not an FK: it points at tasks, projects, tags, comments... (polymorphic, `localType`).
+model ExternalRef {
+  id           String                @id @default(cuid())
+  connectionId String                @map("connection_id")
+  connection   IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  /// The job that CREATED the row. A re-run that finds the ref does not move it (rollback of the re-run must not
+  /// delete what the first run made).
+  importJobId  String                @map("import_job_id")
+  importJob    ImportJob             @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  externalType String                @map("external_type")
+  externalId   String                @map("external_id")
+  /// Human key, e.g. PROJ-42. Display only.
+  externalKey  String?               @map("external_key")
+  localType    String                @map("local_type")
+  localId      String                @map("local_id")
+  /// Hash of the normalised source content: unchanged on re-run = skip; changed = update (4.4).
+  contentHash  String?               @map("content_hash")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  updatedAt    DateTime              @updatedAt @map("updated_at")
+
+  @@unique([connectionId, externalType, externalId], map: "uq_external_refs_connection_type_external")
+  @@index([importJobId, localType], map: "idx_external_refs_job_local_type")
+  @@index([localType, localId], map: "idx_external_refs_local")
+  @@map("external_refs")
+}
+
+model ImportJobIssue {
+  id          String              @id @default(cuid())
+  importJobId String              @map("import_job_id")
+  importJob   ImportJob           @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  severity    ImportIssueSeverity
+  /// Stable machine code, e.g. USER_UNMAPPED, DESCRIPTION_TRUNCATED, DEPENDENCY_CYCLE.
+  code        String
+  /// The provider-side object it is about: "<externalType>:<externalId>" or a key. Null = job-level.
+  externalRef String?             @map("external_ref")
+  message     String
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@index([importJobId, severity, createdAt], map: "idx_import_job_issues_job_severity")
+  @@map("import_job_issues")
+}
+
+
+/// Step 4.4. A parent or dependency whose other end was not imported yet when the task page was written (pages arrive in the
+/// provider's order, not parents-first). Written in the SAME transaction as the page, resolved by the LINKS phase at the end,
+/// deleted when the job finishes. A table (not the checkpoint) so a million-task import cannot bloat the job row.
+/// Step 4.6 (diagram 05, lane "Attachment copy"). One file an import still has to copy from the provider (or has copied).
+/// Written in the SAME transaction as its task, drained by the attachment-copy phase on the `import-files` queue.
+model ImportFileItem {
+  id            String    @id @default(cuid())
+  importJobId   String    @map("import_job_id")
+  importJob     ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  /// The provider's id of the attachment (the ExternalRef key once copied).
+  externalId    String    @map("external_id")
+  /// The local task the file belongs to.
+  taskId        String    @map("task_id")
+  fileName      String    @map("file_name")
+  mimeType      String?   @map("mime_type")
+  /// Declared size when the source states one; the real size is measured while copying.
+  sizeBytes     Int?      @map("size_bytes")
+  /// Opaque to everything but the adapter's fetchAttachment.
+  providerRef   String    @map("provider_ref")
+  /// Local user the file is credited to (the importer when the source person has no account).
+  uploadedById  String    @map("uploaded_by_id")
+  /// Source timestamp, kept when the job keeps dates.
+  sourceCreatedAt DateTime? @map("source_created_at")
+  /// 'PENDING' | 'DONE' | 'SKIPPED' | 'FAILED'
+  status        String    @default("PENDING")
+  /// Failed download attempts so far (a file that keeps failing is given up on, the import carries on).
+  attempts      Int       @default(0)
+  /// The quota-reserving PENDING attachment row, created before the first byte is fetched and reused by a retry.
+  attachmentId  String?   @map("attachment_id")
+  note          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@unique([importJobId, taskId, externalId], map: "uq_import_file_items")
+  @@index([importJobId, status, id], map: "idx_import_file_items_job_status")
+  @@map("import_file_items")
+}
+
+model ImportPendingLink {
+  id             String    @id @default(cuid())
+  importJobId    String    @map("import_job_id")
+  importJob      ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  /// 'PARENT' | 'DEPENDENCY'
+  kind           String
+  /// PARENT: the child. DEPENDENCY: the blocking task.
+  fromExternalId String    @map("from_external_id")
+  /// PARENT: the parent. DEPENDENCY: the blocked task.
+  toExternalId   String    @map("to_external_id")
+  /// DependencyType for a DEPENDENCY ('' for a PARENT: part of the unique key, so it is not nullable).
+  depType        String    @default("") @map("dep_type")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@unique([importJobId, kind, fromExternalId, toExternalId, depType], map: "uq_import_pending_links")
+  @@index([importJobId, id], map: "idx_import_pending_links_job")
+  @@map("import_pending_links")
+}
+
+/// Step 2.2 (ADR-0010 d.2): one-time "link your account" token. Only the SHA-256 of the token is stored;
+/// the token itself exists only in the ephemeral chat reply. At most one live token per (connection, external user).
+model IdentityLinkToken {
+  id             String                @id @default(cuid())
+  tokenHash      String                @unique(map: "uq_identity_link_tokens_token_hash") @map("token_hash")
+  connectionId   String                @map("connection_id")
+  connection     IntegrationConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  externalUserId String                @map("external_user_id")
+  expiresAt      DateTime              @map("expires_at")
+  consumedAt     DateTime?             @map("consumed_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+
+  @@index([connectionId, externalUserId], map: "idx_identity_link_tokens_connection_external")
+  @@index([expiresAt], map: "idx_identity_link_tokens_expires_at")
+  @@map("identity_link_tokens")
+}
+
+/// Step 2.4 (ADR-0012 d.7): one row per deferred chat command, keyed by the provider's interaction id. Makes the WRITE
+/// at-most-once while the job (and its reply to the provider) stays at-least-once: a retried job reuses the stored result.
+model ChatCommandRun {
+  id            String              @id @default(cuid())
+  provider      IntegrationProvider
+  interactionId String              @map("interaction_id")
+  /// RUNNING until the executor returned; DONE once `result` is stored.
+  status        String
+  result        Json?
+  createdAt     DateTime            @default(now()) @map("created_at")
+
+  @@unique([provider, interactionId], map: "uq_chat_command_runs_provider_interaction")
+  @@index([createdAt], map: "idx_chat_command_runs_created_at")
+  @@map("chat_command_runs")
+}
+
+// ===========================================================================
+// Step 3.5 - Templates (diagram 13). A Template is the mutable envelope; a
+// TemplateVersion is an IMMUTABLE blueprint snapshot (database trigger, see
+// migration 20260620000000). Visibility is PRIVATE | ACCOUNT | PUBLIC (seeds only);
+// UNLISTED arrives with the marketplace (Phase 6); PUBLIC (step 3.9) is for first-party seeds.
+// ===========================================================================
+enum TemplateKind {
+  WORKSPACE
+  PROJECT
+
+  @@map("template_kind")
+}
+
+enum TemplateVisibility {
+  PRIVATE // creator (and account OWNER/ADMIN) only
+  ACCOUNT // every MEMBER+ of the owning account
+  /// Step 3.9. Readable, appliable and forkable by EVERY signed-in user; editable by nobody outside the
+  /// owning account. Only the system account may own one (checked in TemplatesService; Phase 6's
+  /// marketplace widens that to approved listings).
+  PUBLIC
+
+  @@map("template_visibility")
+}
+
+model Template {
+  id             String             @id @default(cuid())
+  ownerAccountId String             @map("owner_account_id")
+  ownerAccount   Account            @relation(fields: [ownerAccountId], references: [id], onDelete: Cascade)
+  createdById    String             @map("created_by_id")
+  createdBy      User               @relation("TemplateCreator", fields: [createdById], references: [id])
+  kind           TemplateKind
+  visibility     TemplateVisibility @default(PRIVATE)
+  name           String
+  description    String?
+  category       String?
+  tags           String[]           @default([])
+
+  /// Step 3.9. Stable identity of a first-party template (e.g. "student-workspace"); NULL for every
+  /// user-made one. Only the seeder sets it, and a fork never inherits it.
+  seedKey String? @unique(map: "uq_templates_seed_key") @map("seed_key")
+
+  // Fork lineage. Both are SET NULL when the source is deleted: a fork is
+  // self-contained (it owns a copy of the blueprint), only the pointer goes.
+  sourceTemplateId String?          @map("source_template_id")
+  sourceTemplate   Template?        @relation("TemplateFork", fields: [sourceTemplateId], references: [id], onDelete: SetNull)
+  forks            Template[]       @relation("TemplateFork")
+  sourceVersionId  String?          @map("source_version_id")
+  sourceVersion    TemplateVersion? @relation("ForkedFromVersion", fields: [sourceVersionId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  versions TemplateVersion[] @relation("TemplateVersions")
+  assets   TemplateAsset[]
+  draft    TemplateDraft?
+
+  /// Step 3.8. Last editor key number handed out for this template ("n<seq>" nodeKeys, "a<seq>" asset
+  /// keys). Only ever moves forward, so a key is never reused for something else.
+  nodeKeySeq Int @default(0) @map("node_key_seq")
+
+  @@index([ownerAccountId, createdAt], map: "idx_templates_owner_account_created")
+  @@index([sourceTemplateId], map: "idx_templates_source_template")
+  @@index([createdById], map: "idx_templates_created_by")
+  @@map("templates")
+}
+
+model TemplateVersion {
+  id            String   @id @default(cuid())
+  templateId    String   @map("template_id")
+  template      Template @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: Cascade)
+  /// 1, 2, 3... in creation order; the "latest" version is the highest.
+  sequence      Int
+  semver        String
+  schemaVersion Int      @map("schema_version")
+  /// A validated BlueprintV1. Never edited: a change is a new version.
+  blueprint     Json
+  /// "sha256:<hex>" of the canonical JSON of `blueprint`.
+  checksum      String
+  /// computeBlueprintStats() at the time of writing (counts, for listings and plan preflight).
+  stats         Json
+  sizeBytes     Int      @map("size_bytes")
+  changelog     String?
+  createdById   String   @map("created_by_id")
+  createdBy     User     @relation("TemplateVersionCreator", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  forkedInto Template[] @relation("ForkedFromVersion")
+  installs   TemplateInstall[]
+
+  @@unique([templateId, sequence], map: "uq_template_versions_template_sequence")
+  @@unique([templateId, semver], map: "uq_template_versions_template_semver")
+  @@map("template_versions")
+}
+
+
+// ===========================================================================
+// Step 3.6 - applying a template. One TemplateInstall per apply; one item per
+// entity the apply CREATED or REUSED (what powers undo and, later, upgrades).
+// ===========================================================================
+enum TemplateInstallMode {
+  NEW_WORKSPACE // target workspace was empty and the caller said so
+  MERGE
+
+  @@map("template_install_mode")
+}
+
+enum TemplateInstallStatus {
+  APPLYING
+  APPLIED
+  FAILED
+  UNDONE
+
+  @@map("template_install_status")
+}
+
+enum TemplateInstallAction {
+  CREATED
+  REUSED
+  SKIPPED
+
+  @@map("template_install_action")
+}
+
+model TemplateInstall {
+  id          String  @id @default(cuid())
+  /// SET NULL: deleting a template (hard delete) must not delete the history of what it created.
+  versionId   String? @map("version_id")
+  version     TemplateVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  /// Snapshots, because the version row may be gone.
+  templateName    String @map("template_name")
+  versionSemver   String @map("version_semver")
+  versionChecksum String @map("version_checksum")
+  accountId   String  @map("account_id")
+  account     Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  workspaceId String  @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  appliedById String  @map("applied_by_id")
+  appliedBy   User    @relation("TemplateInstaller", fields: [appliedById], references: [id])
+  mode        TemplateInstallMode
+  variables       Json @default("{}")
+  roleAssignments Json @default("{}") @map("role_assignments")
+  moduleSelection Json @default("{}") @map("module_selection")
+  status      TemplateInstallStatus @default(APPLYING)
+  /// counts, reused vs created, warnings, timings, the failure reason.
+  report      Json    @default("{}")
+  startedAt   DateTime  @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  undoneAt    DateTime? @map("undone_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  items TemplateInstallItem[]
+
+  @@index([workspaceId, createdAt], map: "idx_template_installs_workspace_created")
+  @@index([versionId], map: "idx_template_installs_version")
+  @@index([appliedById], map: "idx_template_installs_applied_by")
+  @@map("template_installs")
+}
+
+model TemplateInstallItem {
+  id         String   @id @default(cuid())
+  installId  String   @map("install_id")
+  install    TemplateInstall @relation(fields: [installId], references: [id], onDelete: Cascade)
+  /// TAG | CUSTOM_FIELD | ISSUE_TYPE | ITERATION | PROJECT | TASK | ATTACHMENT | AUTOMATION | SAVED_VIEW (CHECK in the migration)
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  nodeKey    String?  @map("node_key")
+  action     TemplateInstallAction
+  undoneAt   DateTime? @map("undone_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([installId, entityType, entityId], map: "uq_template_install_items_entity")
+  @@index([installId, entityType], map: "idx_template_install_items_install_type")
+  @@index([entityType, entityId], map: "idx_template_install_items_entity")
+  @@map("template_install_items")
+}
+
+/// Step 3.7. A reference file a template carries. The bytes live in object storage under
+/// `storageKey`; blueprint.assets[].sha256 points here. Scoped to the TEMPLATE (shared by all its
+/// versions, copied on fork), so deleting a template needs no reference counting.
+model TemplateAsset {
+  id          String   @id @default(cuid())
+  templateId  String   @map("template_id")
+  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sha256      String
+  fileName    String   @map("file_name")
+  mimeType    String   @map("mime_type")
+  sizeBytes   Int      @map("size_bytes")
+  storageKey  String   @map("storage_key")
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([templateId, sha256], map: "uq_template_assets_template_sha")
+  @@map("template_assets")
+}
+
+/// Step 3.8. The one work-in-progress copy of a template: a VALID blueprint that the editor changes
+/// with operations. Unlike a version it is mutable; publishing turns it into the next version.
+/// `revision` rises on every change and every write must quote it (no silent overwrites).
+model TemplateDraft {
+  id           String   @id @default(cuid())
+  templateId   String   @unique @map("template_id")
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  /// The version this draft started from. Publishing is refused when a newer version exists.
+  baseSequence Int      @map("base_sequence")
+  baseChecksum String   @map("base_checksum")
+  blueprint    Json
+  revision     Int      @default(1)
+  createdById  String   @map("created_by_id")
+  updatedById  String   @map("updated_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @map("updated_at")
+
+  @@map("template_drafts")
+}
+
+
+// ===========================================================================
+// Step 5.1 - Automations (diagram 11). A rule is DATA, never code: a trigger, optional conditions
+// and a short list of actions, validated against the v1 DSL (src/automations/dsl). Nothing runs
+// them yet (5.2). `ruleVersion` 0 = a raw definition imported from elsewhere and not yet translated
+// (kept in `sourceDefinition`, never enabled); 1 = the v1 DSL. A rule that uses a construct this
+// build cannot execute (e.g. a chat notification before Phase 2) is stored with those constructs
+// listed in `unsupported` and cannot be enabled; the database enforces both (migration CHECKs).
+// ===========================================================================
+enum AutomationOrigin {
+  USER
+  TEMPLATE
+  IMPORT
+  GITHUB_RULE
+
+  @@map("automation_origin")
+}
+
+enum AutomationRunStatus {
+  OK
+  SKIPPED
+  FAILED
+
+  @@map("automation_run_status")
+}
+
+model Automation {
+  automationWaits AutomationWait[]
+  automationMessages AutomationMessage[]
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// null = the whole workspace; set = only tasks of that project (and the only scope where
+  /// per-project workflow statuses can be named).
+  projectId   String?  @map("project_id")
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  /// normalizeName(); unique per workspace, so "Close done" and "close  DONE" are one name.
+  nameKey     String   @map("name_key")
+  enabled     Boolean  @default(false)
+  /// 0 = raw import (see above), 1 = DSL v1.
+  ruleVersion Int      @default(1) @map("rule_version")
+  /// trigger.type, copied out so the runner can index on it; 'RAW' when ruleVersion is 0.
+  triggerType String   @map("trigger_type")
+  trigger     Json
+  conditions  Json     @default("{}")
+  actions     Json     @default("[]")
+  /// [{path, construct, reason}] the v1 validator accepted but this build cannot execute.
+  unsupported Json     @default("[]")
+  /// Step 5.2. Why the runner switched this rule off (loop or rate breaker). Only set while it is off; cleared when someone turns it on.
+  pausedReason String? @map("paused_reason")
+  /// The foreign rule exactly as received (imports / GitHub status rules), until it is translated.
+  sourceDefinition Json? @map("source_definition")
+  createdVia  AutomationOrigin @default(USER) @map("created_via")
+  createdById String   @map("created_by_id")
+  createdBy   User     @relation("AutomationCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  runs AutomationRun[]
+
+  @@unique([workspaceId, nameKey], map: "uq_automations_workspace_name_key")
+  @@index([workspaceId, triggerType, enabled], map: "idx_automations_runner")
+  @@index([projectId])
+  @@map("automations")
+}
+
+/// One execution (or one decision not to execute) of a rule for one event. `(automationId, eventId)`
+/// is unique: the same event delivered twice runs a rule once (5.2 relies on it). History, so a
+/// deleted task only loses the pointer.
+model AutomationRun {
+  automationWaits AutomationWait[]
+  id           String              @id @default(cuid())
+  automationId String              @map("automation_id")
+  automation   Automation          @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  workspaceId  String              @map("workspace_id")
+  workspace    Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  taskId       String?             @map("task_id")
+  task         Task?               @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  /// The domain event that caused it (activity id, or a scheduler tick id for DUE_APPROACHING).
+  eventId      String              @map("event_id")
+  status       AutomationRunStatus
+  /// Why it did not run (SKIPPED) or what failed (FAILED). Short; never a stack trace.
+  error        String?
+  /// How many rule-triggered hops deep this run is (0 = caused by a person or an adapter).
+  depth        Int                 @default(0)
+  actionsRun   Int                 @default(0) @map("actions_run")
+  details      Json?
+  ranAt        DateTime            @default(now()) @map("ran_at")
+
+  @@unique([automationId, eventId], map: "uq_automation_runs_event")
+  @@index([automationId, ranAt])
+  @@index([workspaceId, ranAt])
+  @@map("automation_runs")
+}
+
+
+// ===========================================================================
+// Step 5.4 - Saved views (diagram 11). A view is a named way of looking at tasks: a layout plus a
+// config (filters, grouping, sort, columns) validated against the workspace's real fields
+// (src/views/dsl). PERSONAL (is_shared = false) = visible to its owner only; SHARED = every member
+// of the workspace sees it, and only an admin (`editWorkspace`) creates, changes or removes one.
+// A shared view outlives its owner (owner_id SET NULL); a personal one always has an owner (CHECK).
+// Names are unique per owner (personal) / per workspace (shared), within one scope (a project, or
+// the whole workspace): partial unique indexes in the migration. Running a view is not part of 5.4.
+// ===========================================================================
+enum SavedViewLayout {
+  LIST
+  BOARD
+  TABLE
+  CALENDAR
+  TIMELINE
+
+  @@map("saved_view_layout")
+}
+
+model SavedView {
+  id          String          @id @default(cuid())
+  workspaceId String          @map("workspace_id")
+  workspace   Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// null = the whole workspace; set = a view of that project (the only scope where per-project statuses can be named).
+  projectId   String?         @map("project_id")
+  project     Project?        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ownerId     String?         @map("owner_id")
+  owner       User?           @relation("SavedViewOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  name        String
+  /// normalizeName(); see the unique indexes in the migration (they cannot be expressed here).
+  nameKey     String          @map("name_key")
+  layout      SavedViewLayout
+  config      Json
+  isShared    Boolean         @default(false) @map("is_shared")
+  position    Int             @default(0)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@index([workspaceId, isShared], map: "idx_saved_views_workspace_shared")
+  @@index([ownerId])
+  @@index([projectId])
+  @@map("saved_views")
+}
+
+/// Step 5.14. The text of one NOTIFY a rule ran (rendered), the SOURCE its notifications point at. It
+/// outlives the rule and the task (SetNull), so an old notification still reads.
+model AutomationMessage {
+  id           String      @id @default(cuid())
+  workspaceId  String      @map("workspace_id")
+  workspace    Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automationId String?     @map("automation_id")
+  automation   Automation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
+  taskId       String?     @map("task_id")
+  task         Task?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  message      String
+  createdAt    DateTime    @default(now()) @map("created_at")
+
+  @@index([workspaceId, createdAt], map: "idx_automation_messages_workspace")
+  @@index([automationId], map: "idx_automation_messages_automation")
+  @@index([taskId], map: "idx_automation_messages_task")
+  @@map("automation_messages")
+}
+
+enum AutomationWaitStatus {
+  PENDING
+  RESUMING
+  DONE
+  FAILED
+  CANCELLED
+  @@map("automation_wait_status")
+}
+
+/// Step 5.15. What is left of a run that reached a WAIT: a snapshot of the rule's actions and the position
+/// in them. See the migration for the lifecycle.
+model AutomationWait {
+  id           String               @id @default(cuid())
+  workspaceId  String               @map("workspace_id")
+  workspace    Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  automationId String               @map("automation_id")
+  automation   Automation           @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  runId        String?              @map("run_id")
+  run          AutomationRun?       @relation(fields: [runId], references: [id], onDelete: SetNull)
+  taskId       String?              @map("task_id")
+  task         Task?                @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  resumeAt     DateTime             @map("resume_at")
+  status       AutomationWaitStatus @default(PENDING)
+  actions      Json
+  frames       Json
+  error        String?
+  createdAt    DateTime             @default(now()) @map("created_at")
+  resumedAt    DateTime?            @map("resumed_at")
+
+  @@index([status, resumeAt], map: "idx_automation_waits_due")
+  @@index([workspaceId, status], map: "idx_automation_waits_workspace")
+  @@index([automationId, status], map: "idx_automation_waits_automation")
+  @@index([taskId], map: "idx_automation_waits_task")
+  @@map("automation_waits")
+}
+

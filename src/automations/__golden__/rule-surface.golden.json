@@ -1,0 +1,4604 @@
+{
+ "trigger TASK_CREATED": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_CREATED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "TASK_CREATED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger STATUS_CHANGED any": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger STATUS_CHANGED ids ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_done",
+     "s_todo"
+    ],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/trigger/from/0/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    },
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/trigger/to/0/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED",
+     "from": [
+      {
+       "statusId": "<status:s_todo>"
+      }
+     ],
+     "to": [
+      {
+       "statusId": "<status:s_done>"
+      },
+      {
+       "category": "DONE"
+      }
+     ]
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:s_todo@/trigger/from/0/statusId",
+    "status:s_done@/trigger/to/0/statusId",
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger STATUS_CHANGED ids bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_other",
+     "zz"
+    ],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_STATUS",
+     "path": "/trigger/from/0/statusId",
+     "message": "That status does not exist in this rule's project"
+    },
+    {
+     "code": "UNKNOWN_STATUS",
+     "path": "/trigger/to/0/statusId",
+     "message": "That status does not exist in this rule's project"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/trigger/from/0/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    },
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/trigger/to/0/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED",
+     "from": [
+      {
+       "statusId": "<status:zz>"
+      }
+     ],
+     "to": [
+      {
+       "statusId": "<status:s_other>"
+      }
+     ]
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:zz@/trigger/from/0/statusId",
+    "status:s_other@/trigger/to/0/statusId",
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger FIELD_CHANGED PRIORITY": {
+  "surface": {
+   "valid": true,
+   "triggerType": "FIELD_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "FIELD_CHANGED",
+     "field": "PRIORITY"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger FIELD_CHANGED TITLE (no event)": {
+  "surface": {
+   "valid": true,
+   "triggerType": "FIELD_CHANGED",
+   "unsupported": [
+    {
+     "path": "/trigger",
+     "construct": "FIELD_CHANGED(TITLE)",
+     "reason": "Nothing records a change to this yet, so this trigger cannot fire; the rule is saved but cannot be switched on"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "FIELD_CHANGED",
+     "field": "TITLE"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger FIELD_CHANGED custom ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "FIELD_CHANGED",
+   "unsupported": [
+    {
+     "path": "/trigger",
+     "construct": "FIELD_CHANGED(custom field)",
+     "reason": "Nothing records a change to this yet, so this trigger cannot fire; the rule is saved but cannot be switched on"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_num"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "FIELD_CHANGED",
+     "customFieldId": "<customField:f_num>"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_num@/trigger/customFieldId",
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger FIELD_CHANGED custom bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "FIELD_CHANGED",
+   "unsupported": [
+    {
+     "path": "/trigger",
+     "construct": "FIELD_CHANGED(custom field)",
+     "reason": "Nothing records a change to this yet, so this trigger cannot fire; the rule is saved but cannot be switched on"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "zz"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/trigger/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/trigger/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "FIELD_CHANGED",
+     "customFieldId": "<customField:zz>"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:zz@/trigger/customFieldId",
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger FIELD_CHANGED both (invalid)": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "EXACTLY_ONE_OF",
+     "path": "/trigger",
+     "message": "give exactly one of field / customFieldId"
+    }
+   ]
+  }
+ },
+ "trigger DUE_APPROACHING": {
+  "surface": {
+   "valid": true,
+   "triggerType": "DUE_APPROACHING",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "DUE_APPROACHING",
+     "offset": {
+      "amount": 2,
+      "unit": "DAYS"
+     }
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger DUE_APPROACHING too long": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "OUT_OF_RANGE",
+     "path": "/trigger/offset/amount",
+     "message": "at most 90 days"
+    }
+   ]
+  }
+ },
+ "trigger EXTERNAL_LINK_STATE_CHANGED": {
+  "surface": {
+   "valid": true,
+   "triggerType": "EXTERNAL_LINK_STATE_CHANGED",
+   "unsupported": [
+    {
+     "path": "/trigger",
+     "construct": "EXTERNAL_LINK_STATE_CHANGED",
+     "reason": "Link state changes come from the GitHub/Jira adapters (Phase 2); the rule is saved but cannot be switched on yet"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "EXTERNAL_LINK_STATE_CHANGED",
+     "provider": "GITHUB",
+     "kind": "PR",
+     "state": "merged"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger COMMENT_ADDED": {
+  "surface": {
+   "valid": true,
+   "triggerType": "COMMENT_ADDED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "COMMENT_ADDED",
+     "contains": "ship",
+     "by": "ANYONE"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger COMMENT_ADDED bare": {
+  "surface": {
+   "valid": true,
+   "triggerType": "COMMENT_ADDED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "COMMENT_ADDED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger TASK_ARCHIVED": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_ARCHIVED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "TASK_ARCHIVED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger TASK_RESTORED": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_RESTORED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "TASK_RESTORED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger ALL_SUBTASKS_DONE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "ALL_SUBTASKS_DONE",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "ALL_SUBTASKS_DONE"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger TASK_OVERDUE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_OVERDUE",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "TASK_OVERDUE",
+     "afterHours": 24
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "trigger SCHEDULE daily": {
+  "surface": {
+   "valid": true,
+   "triggerType": "SCHEDULE",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [
+    {
+     "code": "SCHEDULE_NEEDS_PROJECT",
+     "path": "/trigger",
+     "message": "A scheduled rule creates its tasks in one project: give the rule a project"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "SCHEDULE",
+     "frequency": "DAILY",
+     "hour": 9
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "Weekly {{date}}"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "trigger SCHEDULE weekly": {
+  "surface": {
+   "valid": true,
+   "triggerType": "SCHEDULE",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [
+    {
+     "code": "SCHEDULE_NEEDS_PROJECT",
+     "path": "/trigger",
+     "message": "A scheduled rule creates its tasks in one project: give the rule a project"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "SCHEDULE",
+     "frequency": "WEEKLY",
+     "hour": 9,
+     "weekdays": [
+      1,
+      3
+     ]
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "Weekly {{date}}"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "trigger SCHEDULE weekly missing days": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "MISSING",
+     "path": "/trigger/weekdays",
+     "message": "a weekly schedule names its weekdays (1 = Monday ... 7 = Sunday)"
+    }
+   ]
+  }
+ },
+ "trigger SCHEDULE monthly": {
+  "surface": {
+   "valid": true,
+   "triggerType": "SCHEDULE",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [
+    {
+     "code": "SCHEDULE_NEEDS_PROJECT",
+     "path": "/trigger",
+     "message": "A scheduled rule creates its tasks in one project: give the rule a project"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "SCHEDULE",
+     "frequency": "MONTHLY",
+     "hour": 0,
+     "dayOfMonth": 15
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "Weekly {{date}}"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "trigger unknown trigger": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "UNKNOWN_TRIGGER",
+     "path": "/trigger/type",
+     "message": "unknown trigger \"NOPE\""
+    }
+   ]
+  }
+ },
+ "action SET_STATUS id ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_done"
+    ],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/actions/0/status/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_STATUS",
+      "status": {
+       "statusId": "<status:s_done>"
+      }
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:s_done@/actions/0/status/statusId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "workflowStatusId": "s_done"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_STATUS id bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "zz"
+    ],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_STATUS",
+     "path": "/actions/0/status/statusId",
+     "message": "That status does not exist in this rule's project"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/actions/0/status/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_STATUS",
+      "status": {
+       "statusId": "<status:zz>"
+      }
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:zz@/actions/0/status/statusId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "workflowStatusId": "zz"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_STATUS category": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_STATUS",
+      "status": {
+       "category": "DONE"
+      }
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "status": "DONE"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_PRIORITY": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_PRIORITY",
+      "priority": "HIGH"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "priority": "HIGH"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_PRIORITY clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [
+    {
+     "path": "/actions/0",
+     "construct": "SET_PRIORITY(clear)",
+     "reason": "The task API cannot clear this value yet; the rule is saved but cannot be switched on"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_PRIORITY",
+      "priority": null
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 0,
+    "failedAt": 0,
+    "failedPath": "/actions/0",
+    "error": "Clearing a priority is not supported yet"
+   },
+   "log": []
+  }
+ },
+ "action ASSIGN SET": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [
+     "u1"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ASSIGN",
+      "mode": "SET",
+      "users": [
+       "<user:u1>",
+       "<user:TRIGGERER>",
+       "<user:CREATOR>"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "user:u1@/actions/0/users/0",
+    "user:TRIGGERER@/actions/0/users/1",
+    "user:CREATOR@/actions/0/users/2"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "assignees": {
+         "select": {
+          "id": true
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.setAssignees",
+     "args": [
+      "task1",
+      {
+       "userIds": [
+        "u1",
+        "trig1",
+        "creator1"
+       ]
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action ASSIGN ADD bad user": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [
+     "zz"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/actions/0/users/0",
+     "message": "That user is not a member of this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/actions/0/users/0",
+     "message": "That user is not a member of this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ASSIGN",
+      "mode": "ADD",
+      "users": [
+       "<user:zz>"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "user:zz@/actions/0/users/0"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "assignees": {
+         "select": {
+          "id": true
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.setAssignees",
+     "args": [
+      "task1",
+      {
+       "userIds": [
+        "u9",
+        "u1",
+        "zz"
+       ]
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action ASSIGN REMOVE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [
+     "u1"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ASSIGN",
+      "mode": "REMOVE",
+      "users": [
+       "<user:u1>"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "user:u1@/actions/0/users/0"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "assignees": {
+         "select": {
+          "id": true
+         }
+        }
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.setAssignees",
+     "args": [
+      "task1",
+      {
+       "userIds": [
+        "u9"
+       ]
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action ASSIGN ADD empty": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "TOO_FEW",
+     "path": "/actions/0/users",
+     "message": "ADD and REMOVE need at least one user"
+    }
+   ]
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "assignees": {
+         "select": {
+          "id": true
+         }
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DUE_DATE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_DUE_DATE",
+      "inDays": 3
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "dueDate": "2026-10-29T00:00:00.000Z"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DUE_DATE from due": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_DUE_DATE",
+      "inDays": -2,
+      "from": "DUE_DATE"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "dueDate": true
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "dueDate": "2026-10-30T10:30:00.000Z"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DUE_DATE negative now": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "OUT_OF_RANGE",
+     "path": "/actions/0/inDays",
+     "message": "a negative number of days needs \"from\": \"DUE_DATE\" (counting back from now is the past)"
+    }
+   ]
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "dueDate": "2026-10-24T00:00:00.000Z"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DUE_DATE clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [
+    {
+     "path": "/actions/0",
+     "construct": "SET_DUE_DATE(clear)",
+     "reason": "The task API cannot clear this value yet; the rule is saved but cannot be switched on"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_DUE_DATE",
+      "inDays": null
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 0,
+    "failedAt": 0,
+    "failedPath": "/actions/0",
+    "error": "Clearing a due date is not supported yet"
+   },
+   "log": []
+  }
+ },
+ "action SET_CUSTOM_FIELD number": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_num"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_num>",
+      "value": 5
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_num@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "f_num",
+      5,
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD mismatch": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_num"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/actions/0/value",
+     "message": "The value needs a number"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/actions/0/value",
+     "message": "The value needs a number"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_num>",
+      "value": "x"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_num@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "f_num",
+      "x",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD unknown": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "zz"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/actions/0/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/actions/0/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:zz>",
+      "value": 1
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:zz@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "zz",
+      1,
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD user ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_user"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [
+    "u1"
+   ],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_user>",
+      "value": [
+       "u1",
+       "TRIGGERER"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_user@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "f_user",
+      [
+       "u1",
+       "TRIGGERER"
+      ],
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD user bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_user"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [
+    "zz"
+   ],
+   "semanticInProject": [
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/actions/0/value",
+     "message": "The value is not a user of this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/actions/0/value",
+     "message": "The value is not a user of this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_user>",
+      "value": [
+       "zz"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_user@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "f_user",
+      [
+       "zz"
+      ],
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD select": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_sel"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_sel>",
+      "value": "red"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_sel@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.setValue",
+     "args": [
+      "task1",
+      "f_sel",
+      "red",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_CUSTOM_FIELD clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_text"
+    ],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_text>",
+      "value": null
+     }
+    ]
+   },
+   "walkerCalls": [
+    "customField:f_text@/actions/0/customFieldId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "customFields.deleteValue",
+     "args": [
+      "task1",
+      "f_text"
+     ]
+    }
+   ]
+  }
+ },
+ "action ADD_TAG ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tags.attach",
+     "args": [
+      "task1",
+      "t1",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action ADD_TAG bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "zz"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/0/tagId",
+     "message": "That tag does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/0/tagId",
+     "message": "That tag does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:zz>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:zz@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tags.attach",
+     "args": [
+      "task1",
+      "zz",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action REMOVE_TAG": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [
+     "t1"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "REMOVE_TAG",
+      "tagId": "<tag:t1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tagId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tags.detach",
+     "args": [
+      "task1",
+      "t1",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action COMMENT": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "COMMENT",
+      "body": "Hi {{task.title}} from {{actor.name}}"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "comments.createSystemComment",
+     "args": [
+      "TASK",
+      "task1",
+      "system1",
+      "Hi Fix it from Ann",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action COMMENT bad placeholder": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "UNKNOWN_VARIABLE",
+     "path": "/actions/0/body",
+     "message": "\"{{nope}}\" is not a known placeholder"
+    }
+   ]
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "comments.createSystemComment",
+     "args": [
+      "TASK",
+      "task1",
+      "system1",
+      "Hi ",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action CREATE_SUBTASK": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [
+     "u1",
+     "zz"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/actions/0/assignees/2",
+     "message": "That user is not a member of this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/actions/0/assignees/2",
+     "message": "That user is not a member of this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_SUBTASK",
+      "title": "Sub of {{task.key}}",
+      "priority": "LOW",
+      "assignees": [
+       "<user:u1>",
+       "<user:CREATOR>",
+       "<user:zz>"
+      ]
+     }
+    ]
+   },
+   "walkerCalls": [
+    "user:u1@/actions/0/assignees/0",
+    "user:CREATOR@/actions/0/assignees/1",
+    "user:zz@/actions/0/assignees/2"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "domainWriter.createTask",
+     "args": [
+      {
+       "workspaceId": "w1",
+       "projectId": "p1",
+       "parentId": "task1",
+       "title": "Sub of ABC-1",
+       "priority": "LOW"
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.setAssignees",
+     "args": [
+      "new1",
+      {
+       "userIds": [
+        "u1",
+        "creator1",
+        "zz"
+       ]
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action NOTIFY_CHANNEL": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [
+    {
+     "path": "/actions/0",
+     "construct": "NOTIFY_CHANNEL",
+     "reason": "Chat notifications need the chat integration (Phase 2); the rule is saved but cannot be switched on yet"
+    }
+   ],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "NOTIFY_CHANNEL",
+      "channelLinkId": "<channel:ch1>",
+      "message": "ping"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "channel:ch1@/actions/0/channelLinkId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 0,
+    "failedAt": 0,
+    "failedPath": "/actions/0",
+    "error": "Chat notifications are not available yet"
+   },
+   "log": []
+  }
+ },
+ "action CREATE_TASK full": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_todo"
+    ],
+    "tagIds": [
+     "t1",
+     "zz"
+    ],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [
+     "u2"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/0/tags/1",
+     "message": "That tag does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/0/tags/1",
+     "message": "That tag does not exist in this workspace"
+    },
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/actions/0/status/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "T {{date}}",
+      "description": "D",
+      "priority": "HIGH",
+      "dueInDays": 4,
+      "tags": [
+       "<tag:t1>",
+       "<tag:zz>"
+      ],
+      "assignees": [
+       "<user:u2>",
+       "<user:TRIGGERER>"
+      ],
+      "status": {
+       "statusId": "<status:s_todo>"
+      }
+     }
+    ]
+   },
+   "walkerCalls": [
+    "tag:t1@/actions/0/tags/0",
+    "tag:zz@/actions/0/tags/1",
+    "user:u2@/actions/0/assignees/0",
+    "user:TRIGGERER@/actions/0/assignees/1",
+    "status:s_todo@/actions/0/status/statusId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "domainWriter.createTask",
+     "args": [
+      {
+       "workspaceId": "w1",
+       "projectId": "p1",
+       "title": "T 2026-10-26",
+       "description": "D",
+       "priority": "HIGH",
+       "dueDate": "2026-10-30T00:00:00.000Z",
+       "workflowStatusId": "s_todo"
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    },
+    {
+     "call": "tags.attach",
+     "args": [
+      "new1",
+      "t1",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    },
+    {
+     "call": "tags.attach",
+     "args": [
+      "new1",
+      "zz",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.setAssignees",
+     "args": [
+      "new1",
+      {
+       "userIds": [
+        "u2",
+        "trig1"
+       ]
+      },
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action RENAME_TASK": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "RENAME_TASK",
+      "title": "New {{task.title}}"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "title": "New Fix it"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DESCRIPTION replace": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_DESCRIPTION",
+      "text": "x",
+      "mode": "REPLACE"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "description": "x"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_DESCRIPTION append": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_DESCRIPTION",
+      "text": "x",
+      "mode": "APPEND"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "description": true
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "description": "old text\n\nx"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ESTIMATE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ESTIMATE",
+      "estimate": 3
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "estimate": 3
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ESTIMATE clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ESTIMATE",
+      "estimate": null
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "estimate": null
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ISSUE_TYPE ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [
+     "it1"
+    ],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ISSUE_TYPE",
+      "issueTypeId": "<issueType:it1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "issueType:it1@/actions/0/issueTypeId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "issueTypeId": "it1"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ISSUE_TYPE bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [
+     "zz"
+    ],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_ISSUE_TYPE",
+     "path": "/actions/0/issueTypeId",
+     "message": "That issue type does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_ISSUE_TYPE",
+     "path": "/actions/0/issueTypeId",
+     "message": "That issue type does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ISSUE_TYPE",
+      "issueTypeId": "<issueType:zz>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "issueType:zz@/actions/0/issueTypeId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "issueTypeId": "zz"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ISSUE_TYPE clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ISSUE_TYPE",
+      "issueTypeId": null
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "issueTypeId": null
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ITERATION ok": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": [
+     "i1"
+    ]
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ITERATION",
+      "iterationId": "<iteration:i1>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "iteration:i1@/actions/0/iterationId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "iterationId": "i1"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ITERATION bad": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": [
+     "zz"
+    ]
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_ITERATION",
+     "path": "/actions/0/iterationId",
+     "message": "That iteration does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNKNOWN_ITERATION",
+     "path": "/actions/0/iterationId",
+     "message": "That iteration does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ITERATION",
+      "iterationId": "<iteration:zz>"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "iteration:zz@/actions/0/iterationId"
+   ],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "iterationId": "zz"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_ITERATION clear": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_ITERATION",
+      "iterationId": null
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "iterationId": null
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action CHANGE_PRIORITY up": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CHANGE_PRIORITY",
+      "direction": "UP"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "priority": true
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "priority": "HIGH"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action CHANGE_PRIORITY down": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CHANGE_PRIORITY",
+      "direction": "DOWN"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "priority": true
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "priority": "LOW"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_START_DATE": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_START_DATE",
+      "inDays": 1
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "startDate": "2026-10-27T00:00:00.000Z"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action SET_START_DATE from due": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_START_DATE",
+      "inDays": -1,
+      "from": "DUE_DATE"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "prisma.task.findUnique",
+     "args": [
+      {
+       "where": {
+        "id": "task1"
+       },
+       "select": {
+        "dueDate": true
+       }
+      }
+     ]
+    },
+    {
+     "call": "tasks.update",
+     "args": [
+      "task1",
+      {
+       "startDate": "2026-10-31T10:30:00.000Z"
+      },
+      "system1",
+      {
+       "ctx": {
+        "origin": "AUTOMATION",
+        "actorId": "system1",
+        "automation": {
+         "id": "rule1",
+         "depth": 2
+        }
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action ARCHIVE_TASK": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "ARCHIVE_TASK"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.archive",
+     "args": [
+      "task1",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action RESTORE_TASK": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "RESTORE_TASK"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  },
+  "executor": {
+   "result": {
+    "done": 1
+   },
+   "log": [
+    {
+     "call": "tasks.restore",
+     "args": [
+      "task1",
+      "system1",
+      {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "action unknown action": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "UNKNOWN_ACTION",
+     "path": "/actions/0/type",
+     "message": "unknown action \"NOPE\""
+    }
+   ]
+  }
+ },
+ "conditions: every field": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_CREATED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_todo",
+     "zz"
+    ],
+    "tagIds": [
+     "t1",
+     "zz"
+    ],
+    "issueTypeIds": [
+     "it1",
+     "zz"
+    ],
+    "projectIds": [
+     "p1",
+     "zz"
+    ],
+    "customFieldIds": [
+     "f_num",
+     "f_user",
+     "zz"
+    ],
+    "userIds": [
+     "u1",
+     "zz"
+    ],
+    "iterationIds": []
+   },
+   "customUserIds": [
+    "u1",
+    "zz"
+   ],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_STATUS",
+     "path": "/conditions/all/1/value/1",
+     "message": "That status does not exist in this project"
+    },
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/conditions/all/3/value/2",
+     "message": "That user is not a member of this workspace"
+    },
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/conditions/all/4/value/1",
+     "message": "That tag does not exist in this workspace"
+    },
+    {
+     "code": "UNKNOWN_ISSUE_TYPE",
+     "path": "/conditions/all/5/value/1",
+     "message": "That issue type does not exist in this workspace"
+    },
+    {
+     "code": "UNKNOWN_PROJECT",
+     "path": "/conditions/all/6/value/1",
+     "message": "That project does not exist in this workspace"
+    },
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/conditions/all/11/value",
+     "message": "The value is not a user of this workspace"
+    },
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/conditions/all/12/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/conditions/all/1/value/0",
+     "message": "A specific status can only be named when the scope is one project; use a status category instead"
+    },
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/conditions/all/1/value/1",
+     "message": "A specific status can only be named when the scope is one project; use a status category instead"
+    },
+    {
+     "code": "UNKNOWN_USER",
+     "path": "/conditions/all/3/value/2",
+     "message": "That user is not a member of this workspace"
+    },
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/conditions/all/4/value/1",
+     "message": "That tag does not exist in this workspace"
+    },
+    {
+     "code": "UNKNOWN_ISSUE_TYPE",
+     "path": "/conditions/all/5/value/1",
+     "message": "That issue type does not exist in this workspace"
+    },
+    {
+     "code": "UNKNOWN_PROJECT",
+     "path": "/conditions/all/6/value/1",
+     "message": "That project does not exist in this workspace"
+    },
+    {
+     "code": "VALUE_MISMATCH",
+     "path": "/conditions/all/11/value",
+     "message": "The value is not a user of this workspace"
+    },
+    {
+     "code": "UNKNOWN_CUSTOM_FIELD",
+     "path": "/conditions/all/12/customFieldId",
+     "message": "That custom field does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "TASK_CREATED"
+    },
+    "conditions": {
+     "all": [
+      {
+       "field": "STATUS_CATEGORY",
+       "op": "IN",
+       "value": [
+        "TODO"
+       ]
+      },
+      {
+       "field": "STATUS",
+       "op": "IN",
+       "value": [
+        "<status:s_todo>",
+        "<status:zz>"
+       ]
+      },
+      {
+       "field": "PRIORITY",
+       "op": "IN",
+       "value": [
+        "HIGH"
+       ]
+      },
+      {
+       "field": "ASSIGNEES",
+       "op": "INCLUDES_ANY",
+       "value": [
+        "<user:u1>",
+        "<user:TRIGGERER>",
+        "<user:zz>"
+       ]
+      },
+      {
+       "field": "TAGS",
+       "op": "HAS_ANY",
+       "value": [
+        "<tag:t1>",
+        "<tag:zz>"
+       ]
+      },
+      {
+       "field": "ISSUE_TYPE",
+       "op": "IN",
+       "value": [
+        "<issueType:it1>",
+        "<issueType:zz>"
+       ]
+      },
+      {
+       "field": "PROJECT",
+       "op": "IN",
+       "value": [
+        "<project:p1>",
+        "<project:zz>"
+       ]
+      },
+      {
+       "field": "ESTIMATE",
+       "op": "GT",
+       "value": 2
+      },
+      {
+       "field": "DUE_DATE",
+       "op": "IS_SET"
+      },
+      {
+       "field": "IS_SUBTASK",
+       "op": "IS_FALSE"
+      },
+      {
+       "field": "CUSTOM",
+       "op": "GT",
+       "value": 3,
+       "customFieldId": "<customField:f_num>"
+      },
+      {
+       "field": "CUSTOM",
+       "op": "INCLUDES_ANY",
+       "value": [
+        "<user:u1>",
+        "<user:zz>"
+       ],
+       "customFieldId": "<customField:f_user>"
+      },
+      {
+       "field": "CUSTOM",
+       "op": "EQ",
+       "value": "x",
+       "customFieldId": "<customField:zz>"
+      }
+     ]
+    },
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "x"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:s_todo@/conditions/all/1/value/0",
+    "status:zz@/conditions/all/1/value/1",
+    "user:u1@/conditions/all/3/value/0",
+    "user:TRIGGERER@/conditions/all/3/value/1",
+    "user:zz@/conditions/all/3/value/2",
+    "tag:t1@/conditions/all/4/value/0",
+    "tag:zz@/conditions/all/4/value/1",
+    "issueType:it1@/conditions/all/5/value/0",
+    "issueType:zz@/conditions/all/5/value/1",
+    "project:p1@/conditions/all/6/value/0",
+    "project:zz@/conditions/all/6/value/1",
+    "customField:f_num@/conditions/all/10/customFieldId",
+    "customField:f_user@/conditions/all/11/customFieldId",
+    "user:u1@/conditions/all/11/value/0",
+    "user:zz@/conditions/all/11/value/1",
+    "customField:zz@/conditions/all/12/customFieldId"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "recursion: TASK_CREATED -> CREATE_SUBTASK unguarded": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_CREATED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNBOUNDED_RECURSION",
+     "path": "/actions/0",
+     "message": "Creating a subtask when a task is created repeats forever; add the condition \"is a subtask: false\""
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNBOUNDED_RECURSION",
+     "path": "/actions/0",
+     "message": "Creating a subtask when a task is created repeats forever; add the condition \"is a subtask: false\""
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "TASK_CREATED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_SUBTASK",
+      "title": "s"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "recursion: TASK_CREATED -> CREATE_SUBTASK guarded": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_CREATED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [],
+   "semanticWorkspaceWide": [],
+   "walked": {
+    "trigger": {
+     "type": "TASK_CREATED"
+    },
+    "conditions": {
+     "all": [
+      {
+       "field": "IS_SUBTASK",
+       "op": "IS_FALSE"
+      }
+     ]
+    },
+    "actions": [
+     {
+      "type": "CREATE_SUBTASK",
+      "title": "s"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "recursion: TASK_CREATED -> CREATE_TASK no conditions": {
+  "surface": {
+   "valid": true,
+   "triggerType": "TASK_CREATED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [],
+    "tagIds": [],
+    "issueTypeIds": [],
+    "projectIds": [],
+    "customFieldIds": [],
+    "userIds": [],
+    "iterationIds": []
+   },
+   "customUserIds": [],
+   "semanticInProject": [
+    {
+     "code": "UNBOUNDED_RECURSION",
+     "path": "/actions/0",
+     "message": "Creating a task whenever a task is created needs a condition that says WHICH tasks"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "UNBOUNDED_RECURSION",
+     "path": "/actions/0",
+     "message": "Creating a task whenever a task is created needs a condition that says WHICH tasks"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "TASK_CREATED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "CREATE_TASK",
+      "title": "s"
+     }
+    ]
+   },
+   "walkerCalls": [],
+   "walkerIssues": []
+  }
+ },
+ "SCHEDULE with a task action": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "ACTION_NEEDS_TASK",
+     "path": "/actions/0/type",
+     "message": "ADD_TAG acts on a task, and a scheduled rule has none; it can only create tasks"
+    }
+   ]
+  }
+ },
+ "SCHEDULE with conditions and task placeholder": {
+  "surface": {
+   "valid": false,
+   "issues": [
+    {
+     "code": "CONDITIONS_NEED_TASK",
+     "path": "/conditions",
+     "message": "A scheduled rule runs with no task, so it has nothing to check conditions on"
+    },
+    {
+     "code": "VARIABLE_NEEDS_TASK",
+     "path": "/actions/0/title",
+     "message": "\"{{task.title}}\" needs a task; a scheduled rule only has {{date}}"
+    },
+    {
+     "code": "VARIABLE_NEEDS_TASK",
+     "path": "/actions/0/description",
+     "message": "\"{{actor.name}}\" needs a task; a scheduled rule only has {{date}}"
+    }
+   ]
+  }
+ },
+ "ten mixed actions": {
+  "surface": {
+   "valid": true,
+   "triggerType": "STATUS_CHANGED",
+   "unsupported": [],
+   "refs": {
+    "statusIds": [
+     "s_done"
+    ],
+    "tagIds": [
+     "t1",
+     "zz"
+    ],
+    "issueTypeIds": [
+     "it1"
+    ],
+    "projectIds": [],
+    "customFieldIds": [
+     "f_user"
+    ],
+    "userIds": [
+     "u1",
+     "u2"
+    ],
+    "iterationIds": [
+     "i1"
+    ]
+   },
+   "customUserIds": [
+    "u2"
+   ],
+   "semanticInProject": [
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/3/tagId",
+     "message": "That tag does not exist in this workspace"
+    }
+   ],
+   "semanticWorkspaceWide": [
+    {
+     "code": "STATUS_NEEDS_PROJECT",
+     "path": "/actions/0/status/statusId",
+     "message": "A specific status can only be named in a rule that belongs to one project; use a status category instead"
+    },
+    {
+     "code": "UNKNOWN_TAG",
+     "path": "/actions/3/tagId",
+     "message": "That tag does not exist in this workspace"
+    }
+   ],
+   "walked": {
+    "trigger": {
+     "type": "STATUS_CHANGED"
+    },
+    "conditions": {},
+    "actions": [
+     {
+      "type": "SET_STATUS",
+      "status": {
+       "statusId": "<status:s_done>"
+      }
+     },
+     {
+      "type": "ASSIGN",
+      "mode": "ADD",
+      "users": [
+       "<user:u1>"
+      ]
+     },
+     {
+      "type": "ADD_TAG",
+      "tagId": "<tag:t1>"
+     },
+     {
+      "type": "REMOVE_TAG",
+      "tagId": "<tag:zz>"
+     },
+     {
+      "type": "SET_ITERATION",
+      "iterationId": "<iteration:i1>"
+     },
+     {
+      "type": "SET_ISSUE_TYPE",
+      "issueTypeId": "<issueType:it1>"
+     },
+     {
+      "type": "SET_CUSTOM_FIELD",
+      "customFieldId": "<customField:f_user>",
+      "value": [
+       "u2"
+      ]
+     },
+     {
+      "type": "COMMENT",
+      "body": "done"
+     },
+     {
+      "type": "CREATE_SUBTASK",
+      "title": "follow up",
+      "assignees": [
+       "<user:u2>"
+      ]
+     },
+     {
+      "type": "ARCHIVE_TASK"
+     }
+    ]
+   },
+   "walkerCalls": [
+    "status:s_done@/actions/0/status/statusId",
+    "user:u1@/actions/1/users/0",
+    "tag:t1@/actions/2/tagId",
+    "tag:zz@/actions/3/tagId",
+    "iteration:i1@/actions/4/iterationId",
+    "issueType:it1@/actions/5/issueTypeId",
+    "customField:f_user@/actions/6/customFieldId",
+    "user:u2@/actions/8/assignees/0"
+   ],
+   "walkerIssues": []
+  }
+ },
+ "executor CHANGE_PRIORITY at top": {
+  "result": {
+   "done": 1
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "priority": true
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "executor CHANGE_PRIORITY unset down": {
+  "result": {
+   "done": 1
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "priority": true
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "executor CHANGE_PRIORITY unset up": {
+  "result": {
+   "done": 1
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "priority": true
+      }
+     }
+    ]
+   },
+   {
+    "call": "tasks.update",
+    "args": [
+     "task1",
+     {
+      "priority": "LOW"
+     },
+     "system1",
+     {
+      "ctx": {
+       "origin": "AUTOMATION",
+       "actorId": "system1",
+       "automation": {
+        "id": "rule1",
+        "depth": 2
+       }
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "executor SET_DUE_DATE from missing due": {
+  "result": {
+   "done": 0,
+   "failedAt": 0,
+   "failedPath": "/actions/0",
+   "error": "The task has no due date to count from"
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "dueDate": true
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "executor ASSIGN no-op": {
+  "result": {
+   "done": 1
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "assignees": {
+        "select": {
+         "id": true
+        }
+       }
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "executor SET_DESCRIPTION too long": {
+  "result": {
+   "done": 0,
+   "failedAt": 0,
+   "failedPath": "/actions/0",
+   "error": "The description would be longer than 10000 characters"
+  },
+  "log": [
+   {
+    "call": "prisma.task.findUnique",
+    "args": [
+     {
+      "where": {
+       "id": "task1"
+      },
+      "select": {
+       "description": true
+      }
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -1,0 +1,546 @@
+// Step 3.9. First-party template content. Edit here, never in a stored version: a changed seed is
+// published by the seeder as a NEW version. `assets` is not written by hand (see seed.prepare.ts).
+export const studentWorkspaceBlueprint: Record<string, unknown> = {
+  schemaVersion: 1,
+  meta: {
+    name: 'Student workspace',
+    description:
+      'A semester of one course: readings, assignments, an exam with a professor review step.',
+    kind: 'WORKSPACE',
+    category: 'education',
+    locale: 'en',
+  },
+  dateAnchor: {
+    variable: 'semesterStart',
+    skipWeekends: true,
+  },
+  variables: [
+    {
+      key: 'course',
+      label: 'Course name',
+      type: 'TEXT',
+      default: 'Introduction to Biology',
+      required: true,
+    },
+    {
+      key: 'semesterStart',
+      label: 'First day of semester',
+      type: 'DATE',
+      default: '2026-09-01',
+      required: true,
+    },
+  ],
+  roles: [
+    {
+      key: 'student',
+      label: 'Student',
+      suggestedAccess: 'MEMBER',
+    },
+    {
+      key: 'professor',
+      label: 'Professor',
+      suggestedAccess: 'VIEWER',
+    },
+  ],
+  modules: [
+    {
+      key: 'exam-prep',
+      label: 'Exam preparation',
+      defaultEnabled: true,
+      includes: ['midterm'],
+    },
+    {
+      key: 'labs',
+      label: 'Lab course',
+      defaultEnabled: false,
+      includes: ['labs'],
+    },
+  ],
+  workspace: {
+    name: '{{course}}',
+    key: 'STUDY',
+    icon: 'graduation-cap',
+    description:
+      'Everything for {{course}}, starting {{format(semesterStart, "MMMM d")}}.',
+    tags: [
+      {
+        name: 'exam',
+      },
+      {
+        name: 'reading',
+      },
+      {
+        name: 'assignment',
+      },
+      {
+        name: 'lab',
+      },
+    ],
+    customFields: [
+      {
+        key: 'prof-review',
+        name: 'Professor review',
+        dataType: 'SELECT',
+        options: ['pending', 'approved', 'changes requested'],
+        order: 1,
+      },
+      {
+        key: 'exam-weight',
+        name: 'Exam weight (%)',
+        dataType: 'NUMBER',
+        order: 2,
+      },
+    ],
+    issueTypes: [
+      {
+        name: 'Assignment',
+        color: '#3B82F6',
+        level: 'STANDARD',
+      },
+      {
+        name: 'Exam',
+        color: '#EF4444',
+        level: 'EPIC',
+      },
+      {
+        name: 'Reading',
+        color: '#22C55E',
+        level: 'STANDARD',
+      },
+    ],
+    iterations: [
+      {
+        nodeKey: 'it-midterm',
+        kind: 'MILESTONE',
+        name: 'Midterm period',
+        startOffsetDays: 0,
+        endOffsetDays: 49,
+      },
+      {
+        nodeKey: 'it-finals',
+        kind: 'MILESTONE',
+        name: 'Finals',
+        goal: 'Everything handed in',
+        startOffsetDays: 50,
+        endOffsetDays: 100,
+      },
+    ],
+  },
+  projects: [
+    {
+      nodeKey: 'coursework',
+      name: '{{course}}: coursework',
+      description: 'Readings, assignments and the exams for {{course}}.',
+      workflow: {
+        statuses: [
+          {
+            key: 'todo',
+            name: 'To do',
+            category: 'TODO',
+            color: '#94A3B8',
+            isDefault: true,
+          },
+          {
+            key: 'doing',
+            name: 'In progress',
+            category: 'IN_PROGRESS',
+            color: '#3B82F6',
+            isDefault: true,
+          },
+          {
+            key: 'review',
+            name: 'Professor review',
+            category: 'IN_PROGRESS',
+            color: '#F59E0B',
+          },
+          {
+            key: 'done',
+            name: 'Done',
+            category: 'DONE',
+            color: '#22C55E',
+            isDefault: true,
+          },
+          {
+            key: 'dropped',
+            name: 'Dropped',
+            category: 'DONE',
+            color: '#64748B',
+            excludeFromProgress: true,
+          },
+        ],
+        transitions: [
+          {
+            from: 'todo',
+            to: 'doing',
+          },
+          {
+            from: 'doing',
+            to: 'review',
+          },
+          {
+            from: 'review',
+            to: 'doing',
+          },
+          {
+            from: 'review',
+            to: 'done',
+          },
+        ],
+        enforceTransitions: false,
+      },
+      tasks: [
+        {
+          nodeKey: 'read-ch1',
+          title: 'Read chapter 1 of {{course}}',
+          issueType: 'Reading',
+          status: 'todo',
+          priority: 'MEDIUM',
+          tags: ['reading'],
+          assigneeRoles: ['student'],
+          startOffsetDays: 0,
+          dueOffsetDays: 6,
+          estimate: 2,
+          iteration: 'it-midterm',
+        },
+        {
+          nodeKey: 'essay',
+          title: 'Essay: {{slug(course)}}',
+          description:
+            'Draft, then send to the professor.\n\n- outline\n- first draft\n- final',
+          issueType: 'Assignment',
+          status: 'todo',
+          priority: 'HIGH',
+          tags: ['assignment'],
+          customValues: {
+            'prof-review': 'pending',
+          },
+          assigneeRoles: ['student', 'professor'],
+          dueOffsetDays: 28,
+          estimate: 8,
+          iteration: 'it-midterm',
+          children: [
+            {
+              nodeKey: 'essay-outline',
+              title: 'Outline',
+              dueOffsetDays: 14,
+              estimate: 1,
+            },
+            {
+              nodeKey: 'essay-draft',
+              title: 'First draft',
+              dueOffsetDays: 21,
+              estimate: 4,
+              comments: [
+                {
+                  body: 'Reviewed on {{format(semesterStart, "EEE d MMM")}}: add sources.',
+                  authorRole: 'professor',
+                },
+                {
+                  body: 'Will do.',
+                },
+              ],
+            },
+          ],
+          attachments: ['rubric'],
+        },
+        {
+          nodeKey: 'midterm',
+          title: 'Midterm exam',
+          description: 'Covers chapters 1-6.',
+          issueType: 'Exam',
+          status: 'todo',
+          priority: 'URGENT',
+          tags: ['exam'],
+          customValues: {
+            'prof-review': 'pending',
+            'exam-weight': 30,
+          },
+          assigneeRoles: ['student'],
+          dueOffsetDays: 49,
+          iteration: 'it-midterm',
+          children: [
+            {
+              nodeKey: 'midterm-notes',
+              title: 'Review lecture notes',
+              tags: ['exam'],
+              dueOffsetDays: 42,
+            },
+            {
+              nodeKey: 'midterm-practice',
+              title: 'Practice problems',
+              tags: ['exam'],
+              dueOffsetDays: 46,
+              children: [
+                {
+                  nodeKey: 'midterm-past-paper',
+                  title: 'Past paper, last year',
+                  tags: ['exam'],
+                  dueOffsetDays: 47,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          nodeKey: 'final-exam',
+          title: 'Final exam',
+          issueType: 'Exam',
+          tags: ['exam'],
+          customValues: {
+            'exam-weight': 50,
+          },
+          dueOffsetDays: 100,
+          iteration: 'it-finals',
+        },
+      ],
+      dependencies: [
+        {
+          from: 'read-ch1',
+          to: 'midterm',
+          type: 'BLOCKS',
+        },
+        {
+          from: 'essay-outline',
+          to: 'essay-draft',
+        },
+        {
+          from: 'midterm',
+          to: 'final-exam',
+          type: 'RELATES_TO',
+        },
+      ],
+      automations: [
+        {
+          kind: 'rule.v1',
+          name: 'Ask for review when work is ready',
+          trigger: {
+            type: 'STATUS_CHANGED',
+            to: [
+              {
+                statusId: 'review',
+              },
+            ],
+          },
+          conditions: {
+            all: [
+              {
+                field: 'ISSUE_TYPE',
+                op: 'IN',
+                value: ['Assignment'],
+              },
+            ],
+          },
+          actions: [
+            {
+              type: 'SET_CUSTOM_FIELD',
+              customFieldId: 'prof-review',
+              value: 'pending',
+            },
+            {
+              type: 'COMMENT',
+              body: '{{task.key}} is ready for the professor to review.',
+            },
+          ],
+        },
+        {
+          kind: 'rule.v1',
+          name: 'Raise priority when an assignment is late',
+          trigger: {
+            type: 'TASK_OVERDUE',
+          },
+          conditions: {
+            all: [
+              {
+                field: 'ISSUE_TYPE',
+                op: 'IN',
+                value: ['Assignment'],
+              },
+            ],
+          },
+          actions: [
+            {
+              type: 'CHANGE_PRIORITY',
+              direction: 'UP',
+            },
+            {
+              type: 'COMMENT',
+              body: 'Overdue since {{date}}: priority raised.',
+            },
+          ],
+        },
+        {
+          kind: 'rule.v1',
+          name: 'Weekly planning task',
+          trigger: {
+            type: 'SCHEDULE',
+            frequency: 'WEEKLY',
+            hour: 7,
+            weekdays: [1],
+          },
+          actions: [
+            {
+              type: 'CREATE_TASK',
+              title: 'Plan the week ({{date}})',
+              priority: 'MEDIUM',
+              dueInDays: 1,
+            },
+          ],
+        },
+        {
+          kind: 'rule.v1',
+          name: 'Reopen finished work when someone comments',
+          trigger: {
+            type: 'COMMENT_ADDED',
+          },
+          conditions: {
+            all: [
+              {
+                field: 'STATUS_CATEGORY',
+                op: 'IN',
+                value: ['DONE'],
+              },
+            ],
+          },
+          actions: [
+            {
+              type: 'SET_STATUS',
+              status: {
+                statusId: 'todo',
+              },
+            },
+          ],
+        },
+      ],
+      views: [
+        {
+          kind: 'view.v1',
+          name: 'Board',
+          layout: 'BOARD',
+          shared: true,
+          config: {
+            group: {
+              by: 'STATUS',
+            },
+            columns: ['KEY', 'TITLE', 'ASSIGNEES', 'DUE_DATE'],
+          },
+        },
+        {
+          kind: 'view.v1',
+          name: 'Due this week',
+          layout: 'LIST',
+          shared: true,
+          config: {
+            filters: {
+              all: [
+                {
+                  field: 'DUE_DATE',
+                  op: 'DUE_WITHIN_DAYS',
+                  value: 7,
+                },
+                {
+                  field: 'STATUS_CATEGORY',
+                  op: 'NOT_IN',
+                  value: ['DONE'],
+                },
+              ],
+            },
+            sort: [
+              {
+                field: 'DUE_DATE',
+                dir: 'ASC',
+              },
+            ],
+            columns: ['KEY', 'TITLE', 'DUE_DATE', 'STATUS'],
+          },
+        },
+        {
+          kind: 'view.v1',
+          name: 'Exams by weight',
+          layout: 'TABLE',
+          shared: false,
+          config: {
+            filters: {
+              all: [
+                {
+                  field: 'ISSUE_TYPE',
+                  op: 'IN',
+                  value: ['Exam'],
+                },
+              ],
+            },
+            sort: [
+              {
+                customFieldId: 'exam-weight',
+                dir: 'DESC',
+              },
+            ],
+            columns: ['KEY', 'TITLE', 'DUE_DATE', 'custom:exam-weight'],
+          },
+        },
+        {
+          kind: 'view.v1',
+          name: 'My open work',
+          layout: 'LIST',
+          shared: false,
+          config: {
+            filters: {
+              all: [
+                {
+                  field: 'ASSIGNEES',
+                  op: 'INCLUDES_ANY',
+                  value: ['ME'],
+                },
+                {
+                  field: 'STATUS_CATEGORY',
+                  op: 'NOT_IN',
+                  value: ['DONE'],
+                },
+              ],
+            },
+            sort: [
+              {
+                field: 'PRIORITY',
+                dir: 'DESC',
+              },
+              {
+                field: 'DUE_DATE',
+                dir: 'ASC',
+              },
+            ],
+          },
+        },
+      ],
+    },
+    {
+      nodeKey: 'labs',
+      name: '{{course}}: labs',
+      tasks: [
+        {
+          nodeKey: 'lab-1',
+          title: 'Lab 1: microscopy',
+          tags: ['lab'],
+          dueOffsetDays: 9,
+        },
+        {
+          nodeKey: 'lab-2',
+          title: 'Lab 2: cell division',
+          tags: ['lab'],
+          dueOffsetDays: 23,
+        },
+      ],
+      views: [
+        {
+          kind: 'view.v1',
+          name: 'Lab calendar',
+          layout: 'CALENDAR',
+          shared: true,
+          config: {
+            calendar: {
+              dateField: 'DUE_DATE',
+            },
+          },
+        },
+      ],
+    },
+  ],
+};
