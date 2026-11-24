@@ -33,6 +33,10 @@ mark it superseded or to fix a factual error - a changed decision is a new ADR.
 | [0040](0040-field-roles-selection.md) | Per-source field roles in the import selection (step 4.10) | 4.x |
 | [0041](0041-monday-import.md) | monday.com connector and importer (step 4.11) | 4.x |
 | [0042](0042-notion-import.md) | Notion connector and importer (step 4.12) | 4.x |
+| [0043](0043-iteration-kinds.md) | Iteration kinds: sprint, cycle and milestone get their own features (step 6.0) | 6.x |
+| [0044](0044-sprint-tracking.md) | Sprint tracking: commitment, burndown, capacity, one active sprint (step 6.1) | 6.x |
+| [0045](0045-cycle-cadence.md) | Cycles that repeat: auto-create, auto-rollover, the ring (step 6.2) | 6.x |
+| [0046](0046-milestones.md) | Milestones: exit criteria, health, date history, release notes (step 6.3) | 6.x |
 
 **Status values:** Proposed, Accepted, Superseded by NNNN.
 

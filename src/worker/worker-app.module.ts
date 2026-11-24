@@ -19,6 +19,7 @@ import { IntegrationMaintenanceModule } from '../integrations/integration-mainte
 import { IntegrationNotifyModule } from '../integrations/notify/integration-notify.module';
 import { IntegrationChatModule } from '../integrations/chat/integration-chat.module';
 import { IntegrationGithubModule } from '../integrations/github/integration-github.module';
+import { ProjectsTasksModule } from '../projects-tasks/projects-tasks.module';
 import { AutomationsModule } from '../automations/automations.module';
 import { ImportsWorkerModule } from '../imports/imports-worker.module';
 import { SystemJobsModule } from './system-jobs.module';
@@ -60,6 +61,7 @@ import { WorkerModule } from './worker.module';
     IntegrationNotifyModule, // step 2.3: notification router + notify.deliver
     IntegrationChatModule, // step 2.4: Discord interactions endpoint + chat.command job
     IntegrationGithubModule, // step 2.6: runs github.event
+    ProjectsTasksModule, // step 6.1: the hourly sprint snapshot job
     AutomationsModule, // step 5.2: the due-date sweep job (and the runner for what the sweep changes)
     DomainWriterModule, // importers/templates run here (step 0.7)
     ImportsWorkerModule, // import executor + rollback handlers (step 4.4, FEATURE_IMPORTS)

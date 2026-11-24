@@ -9,7 +9,7 @@ import { Iteration, IterationState, Prisma, TaskStatus } from '@prisma/client';
 import { PermissionResolver } from '../../access-control/access-control.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { leafProgress } from '../tasks/task-tree';
-import { MetricNode, averageVelocity, measure, round2 } from './iteration-metrics';
+import { averageVelocity, measure, round2 } from './iteration-metrics';
 import { normalizeName } from '../planning/normalize-name';
 import {
   CloseIterationDto,
@@ -30,6 +30,16 @@ import {
   parseDateOnly,
   planClose,
 } from './iteration-rules';
+import { KIND_PROFILE, parseConfig, reconcileConfig } from './iteration-kinds';
+import {
+  loadMetricNodes,
+  toMetricNodes,
+  todayUtc,
+  upsertSnapshot,
+} from './iteration-snapshots';
+import { assertNoOtherActiveSprint, commitmentFrom } from './sprint-rules';
+import { criteriaSummary, recordTargetChange } from './iteration-milestones';
+import { assertExitCriteriaMet } from './milestone-rules';
 
 export interface IterationDto {
   id: string;
@@ -43,6 +53,8 @@ export interface IterationDto {
   state: string;
   closedAt: Date | null;
   closeSummary: Prisma.JsonValue | null;
+  /** ADR-0043: this kind's settings, or null. */
+  config: Prisma.JsonValue | null;
   taskCount: number;
 }
 
@@ -58,6 +70,7 @@ const toDto = (i: Iteration, taskCount: number): IterationDto => ({
   state: i.state,
   closedAt: i.closedAt,
   closeSummary: i.closeSummary,
+  config: i.config,
   taskCount,
 });
 
@@ -280,6 +293,7 @@ export class IterationsService {
         throw new BadRequestException('projectId does not belong to this workspace');
       }
     }
+    const config = parseConfig(dto.kind, dto.config);
     const count = await this.prisma.iteration.count({ where: { workspaceId } });
     if (count >= MAX_ITERATIONS_PER_WORKSPACE) {
       throw new ConflictException(
@@ -295,12 +309,18 @@ export class IterationsService {
         goal: dto.goal,
         startDate: start,
         endDate: end,
+        ...(config ? { config: config as Prisma.InputJsonObject } : {}),
       },
     });
     return toDto(created, 0);
   }
 
-  async update(workspaceId: string, iterationId: string, dto: UpdateIterationDto) {
+  async update(
+    workspaceId: string,
+    iterationId: string,
+    dto: UpdateIterationDto,
+    actorId: string | null = null,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       await this.lockRows(tx, [{ id: iterationId, mode: 'UPDATE' }]);
       const it = await this.getOrThrow(tx, workspaceId, iterationId);
@@ -318,6 +338,21 @@ export class IterationsService {
             ? null
             : parseDateOnly(dto.endDate, 'endDate');
       assertDatesOrdered(start, end);
+      const nextKind = dto.kind ?? it.kind;
+      const kindChanged = nextKind !== it.kind;
+      let configPatch:
+        { config: Prisma.InputJsonObject | typeof Prisma.DbNull } | undefined;
+      if (dto.config !== undefined) {
+        const parsed = parseConfig(nextKind, dto.config);
+        configPatch = {
+          config: parsed ? (parsed as Prisma.InputJsonObject) : Prisma.DbNull,
+        };
+      } else if (kindChanged) {
+        const kept = reconcileConfig(nextKind, it.config);
+        configPatch = {
+          config: kept ? (kept as Prisma.InputJsonObject) : Prisma.DbNull,
+        };
+      }
       const updated = await tx.iteration.update({
         where: { id: iterationId },
         data: {
@@ -326,10 +361,21 @@ export class IterationsService {
             ? { name: normalizeName(dto.name, 'Iteration name', 200).name }
             : {}),
           ...(dto.goal !== undefined ? { goal: dto.goal } : {}),
+          ...(configPatch ?? {}),
           startDate: start,
           endDate: end,
         },
       });
+      // ADR-0046: a milestone's target date keeps its history (the first time it is chosen is planning).
+      if (KIND_PROFILE[nextKind].road) {
+        await recordTargetChange(
+          tx,
+          iterationId,
+          it.endDate,
+          updated.endDate,
+          actorId,
+        );
+      }
       return this.describe(tx, updated);
     });
   }
@@ -368,13 +414,51 @@ export class IterationsService {
       await this.lockRows(tx, [{ id: iterationId, mode: 'UPDATE' }]);
       const it = await this.getOrThrow(tx, workspaceId, iterationId);
       assertTransition(it.state, to);
+      const profile = KIND_PROFILE[it.kind];
+
+      // ADR-0044 d.2: one ACTIVE sprint per scope (a project, or the whole workspace). The scope
+      // lock makes two simultaneous starts take turns, so the check below cannot be raced.
+      if (to === IterationState.ACTIVE && profile.singleActivePerScope) {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`iteration-scope:${workspaceId}:${it.kind}:${it.projectId ?? '-'}`}))`;
+        const others = await tx.iteration.findMany({
+          where: {
+            workspaceId,
+            kind: it.kind,
+            projectId: it.projectId,
+            state: IterationState.ACTIVE,
+            id: { not: iterationId },
+          },
+          select: { id: true, name: true },
+          take: 1,
+        });
+        assertNoOtherActiveSprint(others);
+      }
+
+      // ADR-0044 d.3: what the sprint commits to is measured once, at the first start. A reopen
+      // keeps the original commitment (the sprint did not become a different promise).
+      const measured =
+        to === IterationState.ACTIVE && profile.burndown
+          ? measure(await loadMetricNodes(tx, iterationId))
+          : null;
+      const writeCommitment =
+        measured !== null && !(clearClose && it.startSummary);
+
       const updated = await tx.iteration.update({
         where: { id: iterationId },
         data: {
           state: to,
           ...(clearClose ? { closedAt: null, closeSummary: Prisma.DbNull } : {}),
+          ...(writeCommitment && measured
+            ? {
+                startSummary: commitmentFrom(
+                  measured,
+                  new Date(),
+                ) as unknown as Prisma.InputJsonObject,
+              }
+            : {}),
         },
       });
+      if (measured) await upsertSnapshot(tx, iterationId, todayUtc(), measured);
       return this.describe(tx, updated);
     });
   }
@@ -396,6 +480,15 @@ export class IterationsService {
       await this.lockRows(tx, lockIds);
       const it = await this.getOrThrow(tx, workspaceId, iterationId);
       assertTransition(it.state, IterationState.CLOSED);
+
+      // ADR-0046: a milestone closes only when every exit criterion is met (unless it opted out).
+      if (KIND_PROFILE[it.kind].exitCriteria) {
+        assertExitCriteriaMet(
+          await criteriaSummary(tx, iterationId),
+          (it.config as { requireExitCriteria?: boolean } | null)
+            ?.requireExitCriteria,
+        );
+      }
 
       const unfinishedWhere: Prisma.TaskWhereInput = {
         iterationId,
@@ -424,6 +517,10 @@ export class IterationsService {
         },
       });
       const velocity = measure(toMetricNodes(snapshotRows));
+      // ADR-0044: the last point of the burndown is what was left when the sprint closed.
+      if (KIND_PROFILE[it.kind].burndown) {
+        await upsertSnapshot(tx, iterationId, todayUtc(), velocity);
+      }
 
       let movedToId: string | null = null;
       if (plan.kind === 'MOVE') {
@@ -529,27 +626,6 @@ export class IterationsService {
       throw new ForbiddenException('You do not have access to this workspace');
     }
   }
-}
-
-/** Prisma rows -> the pure metric nodes. */
-function toMetricNodes(
-  rows: Array<{
-    id: string;
-    parentId: string | null;
-    status: TaskStatus;
-    isArchived: boolean;
-    estimate: number | null;
-    workflowStatus: { excludeFromProgress: boolean } | null;
-  }>,
-): MetricNode[] {
-  return rows.map((r) => ({
-    id: r.id,
-    parentId: r.parentId,
-    status: r.status,
-    isArchived: r.isArchived,
-    estimate: r.estimate,
-    excludeFromProgress: r.workflowStatus?.excludeFromProgress ?? false,
-  }));
 }
 
 /** The numbers stored when the iteration was closed, if this one has them. */

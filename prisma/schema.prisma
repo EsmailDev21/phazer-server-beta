@@ -655,6 +655,7 @@ model Task {
   issueType   IssueType?  @relation(fields: [issueTypeId], references: [id], onDelete: SetNull, map: "fk_tasks_issue_type")
   iterationId String?     @map("iteration_id")
   iteration   Iteration?  @relation(fields: [iterationId], references: [id], onDelete: SetNull, map: "fk_tasks_iteration")
+  milestoneCriteria MilestoneCriterion[] // step 6.3: criteria this task backs
   // step 1.5 follow-up (ADR-0008). Story points; null = not estimated (counts as 0 points,
   // reported separately). 0..1000, CHECK in the migration. Summed over LEAF tasks only.
   estimate Float?
@@ -801,14 +802,76 @@ model Iteration {
   closedAt     DateTime?      @map("closed_at")
   // What closing did: {unfinished, action: LEAVE|MOVE|BACKLOG, movedToId, completed}.
   closeSummary Json?          @map("close_summary")
+  // step 6.0 (ADR-0043). Per-kind settings, user-editable, validated per kind in
+  // iteration-kinds.ts (SPRINT: capacity, retro; CYCLE: cadence, rollover; MILESTONE: exit criteria
+  // gate). CHECK in the migration: null or a JSON object. System-written data never goes here.
+  config       Json?
+  // step 6.1 (ADR-0044). SYSTEM-written when a sprint starts: {at, committedPoints, committedCount,
+  // unestimated}. Kept on reopen. Never user-editable (that is what `config` is for).
+  startSummary Json?          @map("start_summary")
   createdAt    DateTime       @default(now()) @map("created_at")
   updatedAt    DateTime       @updatedAt @map("updated_at")
 
-  tasks Task[]
+  tasks         Task[]
+  snapshots     IterationSnapshot[]
+  criteria      MilestoneCriterion[]
+  targetChanges IterationTargetChange[]
 
   @@index([workspaceId, state])
   @@index([projectId])
   @@map("iterations")
+}
+
+// step 6.1 (ADR-0044). One row per iteration per calendar day (UTC): what the iteration held and what was
+// left at the last run of that day. Written by the hourly sweep and at start/close; rewritten the same
+// day, never edited later. Leaf-only numbers (same rule as velocity).
+model IterationSnapshot {
+  iterationId     String    @map("iteration_id")
+  iteration       Iteration @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  day             DateTime  @db.Date
+  totalPoints     Float     @map("total_points")
+  totalCount      Int       @map("total_count")
+  remainingPoints Float     @map("remaining_points")
+  remainingCount  Int       @map("remaining_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@id([iterationId, day])
+  @@map("iteration_snapshots")
+}
+
+// step 6.3 (ADR-0046). What must be true for a milestone to count as reached. Either a plain check
+// (done_at set by a person) or tied to a task (met while that task is DONE; done_at is then ignored).
+// One task backs at most one criterion per milestone (partial unique index in the migration).
+model MilestoneCriterion {
+  id          String    @id @default(cuid())
+  iterationId String    @map("iteration_id")
+  iteration   Iteration @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  title       String
+  taskId      String?   @map("task_id")
+  task        Task?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  doneAt      DateTime? @map("done_at")
+  position    Int
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([iterationId, position], map: "idx_milestone_criteria_iteration")
+  @@index([taskId], map: "idx_milestone_criteria_task")
+  @@map("milestone_criteria")
+}
+
+// step 6.3 (ADR-0046). Every move of a milestone's target (end) date. Append-only.
+model IterationTargetChange {
+  id            String    @id @default(cuid())
+  iterationId   String    @map("iteration_id")
+  iteration     Iteration @relation(fields: [iterationId], references: [id], onDelete: Cascade)
+  previousDate  DateTime? @map("previous_date") @db.Date
+  newDate       DateTime? @map("new_date") @db.Date
+  changedById   String?   @map("changed_by_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@index([iterationId, createdAt], map: "idx_iteration_target_changes_iteration")
+  @@map("iteration_target_changes")
 }
 
 enum ExternalLinkKind {

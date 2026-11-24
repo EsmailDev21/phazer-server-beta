@@ -10,6 +10,9 @@ import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Request, Response } from 'express';
 
+/** Keys the envelope owns; anything else on a thrown body is a domain payload and is passed through. */
+const ENVELOPE_KEYS = new Set(['statusCode', 'message', 'error', 'code', 'details', 'requestId', 'timestamp']);
+
 interface ErrorEnvelope {
   statusCode: number;
   message: string | string[];
@@ -17,6 +20,8 @@ interface ErrorEnvelope {
   /** Optional machine-readable discriminator + payload (e.g. TRANSITION_NOT_ALLOWED). Absent for plain errors. */
   code?: string;
   details?: unknown;
+  /** Domain payload fields (issues, plan, report...) thrown next to `code`. */
+  [payload: string]: unknown;
   requestId: string;
   timestamp: string;
 }
@@ -70,7 +75,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
         typeof body === 'object' && body !== null
           ? (body as Record<string, unknown>)
           : {};
+      // Every domain error in this codebase is thrown as { code, message, issues | plan | report | ... }:
+      // the payload sits next to `code`, not under `details`. It used to be dropped here, so a rejected rule or
+      // template reached the person as just "This rule is not valid", with no way to see which part and why.
+      // The other fields are passed through, never overriding the envelope's own.
+      const passthrough = Object.fromEntries(
+        Object.entries(extra).filter(([key]) => !ENVELOPE_KEYS.has(key)),
+      );
       return {
+        ...passthrough,
         statusCode: status,
         message,
         error: HttpStatus[status] ?? 'Error',

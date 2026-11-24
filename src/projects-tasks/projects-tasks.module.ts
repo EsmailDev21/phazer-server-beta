@@ -16,6 +16,11 @@ import { IssueTypesController } from './issue-types/issue-types.controller';
 import { IssueTypesService } from './issue-types/issue-types.service';
 import { IterationsController } from './iterations/iterations.controller';
 import { IterationsService } from './iterations/iterations.service';
+import { CycleRolloverJob } from './iterations/cycle-rollover.job';
+import { CycleService } from './iterations/cycle.service';
+import { MilestoneService } from './iterations/milestone.service';
+import { SprintService } from './iterations/sprint.service';
+import { SprintSnapshotJob } from './iterations/sprint-snapshot.job';
 import { TaskPlanningService } from './planning/task-planning.service';
 import { WorkflowController } from './workflow/workflow.controller';
 import { WorkflowService } from './workflow/workflow.service';
@@ -43,6 +48,11 @@ import { WorkflowService } from './workflow/workflow.service';
     WorkflowService,
     IssueTypesService,
     IterationsService,
+    SprintService,
+    SprintSnapshotJob, // ADR-0044: hourly sprint snapshots
+    CycleService,
+    MilestoneService,
+    CycleRolloverJob, // ADR-0045: hourly cycle rollover
     TaskPlanningService,
   ],
   // Consumed by ActivityNotificationsModule (ActivitiesService) and EventsModule,

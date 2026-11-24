@@ -2,9 +2,12 @@ import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsIn,
+  IsBoolean,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
+  ValidateIf,
   Max,
   MaxLength,
   Min,
@@ -37,6 +40,11 @@ export class CreateIterationDto {
   @IsOptional()
   @IsString()
   projectId?: string;
+
+  /** Settings of this kind (ADR-0043). Checked per kind in iteration-kinds.ts; unknown keys are a 400. */
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, unknown>;
 }
 
 export class UpdateIterationDto {
@@ -62,6 +70,46 @@ export class UpdateIterationDto {
   @IsOptional()
   @IsString()
   endDate?: string | null;
+
+  /**
+   * Replaces the whole config (no merge). null clears it. Omitted = unchanged, except that
+   * changing `kind` keeps only the settings that still fit the new kind.
+   */
+  @IsOptional()
+  @IsObject()
+  config?: Record<string, unknown> | null;
+}
+
+export class SetRetroDto {
+  /** The retro note. null or empty clears it. At most 4000 characters (checked with the rest of the config). */
+  @ValidateIf((_, v) => v !== null)
+  @IsString()
+  retro!: string | null;
+}
+
+export class CreateCriterionDto {
+  /** What must be true. Optional when `taskId` is given: the task's title is used. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  title?: string;
+
+  /** Tie the criterion to a task: it is met while that task is done. */
+  @IsOptional()
+  @IsString()
+  taskId?: string;
+}
+
+export class UpdateCriterionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  title?: string;
+
+  /** Check or uncheck a plain criterion. A criterion tied to a task follows the task (400). */
+  @IsOptional()
+  @IsBoolean()
+  done?: boolean;
 }
 
 export class CloseIterationDto {
