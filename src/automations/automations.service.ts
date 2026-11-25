@@ -542,6 +542,13 @@ export class AutomationsService {
       selfRuleId,
     );
     const valid = issues.length === 0;
+    console.log({
+      valid,
+      issues,
+      unsupported: structural.unsupported,
+      enableable: valid && structural.unsupported.length === 0,
+      triggerType: structural.triggerType,
+    })
     return {
       valid,
       issues,
