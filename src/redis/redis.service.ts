@@ -1,6 +1,11 @@
 import { Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import Redis from 'ioredis';
-import { checkRedisUrl } from './redis-url';
+import {
+  checkRedisUrl,
+  describeRedisTarget,
+  redisErrorHint,
+  type RedisTarget,
+} from './redis-url';
 
 export class RedisNotConfiguredError extends Error {
   constructor() {
@@ -46,6 +51,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /** True when REDIS_URL is set and valid. Says nothing about reachability. */
   readonly configured: boolean;
 
+  /** Host, port and TLS of the configured URL (never the password); for logs. */
+  private readonly target: RedisTarget | null;
+
   constructor(
     private readonly url: string | undefined,
     options: RedisServiceOptions = {},
@@ -53,6 +61,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     this.errorLogIntervalMs = options.errorLogIntervalMs ?? 30_000;
     const check = checkRedisUrl(url);
     this.configured = check.ok;
+    this.target = describeRedisTarget(url);
 
     // An unset URL is normal (Redis is optional until a flag needs it) and is
     // not logged. A URL that is set but wrong deserves a warning, but only a
@@ -69,6 +78,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     // Idempotent: a second call must not overwrite (and so orphan) a live client.
     if (!this.configured || this.client) return;
 
+    if (this.target) {
+      this.logger.log(
+        `Connecting to Redis at ${this.target.host}:${this.target.port} (${this.target.tls ? 'TLS' : 'no TLS'}, ${this.target.hasPassword ? 'password set' : 'no password'})`,
+      );
+    }
     this.client = new Redis(this.url.trim(), {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
@@ -153,7 +167,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         this.suppressedErrors > 0
           ? ` (${this.suppressedErrors} similar error(s) suppressed)`
           : '';
-      this.logger.error(`Redis connection error: ${err.message}${extra}`);
+      this.logger.error(
+        `Redis connection error: ${err.message}${redisErrorHint(err.message, this.target)}${extra}`,
+      );
       this.lastErrorLoggedAt = now;
       this.suppressedErrors = 0;
     } else {
