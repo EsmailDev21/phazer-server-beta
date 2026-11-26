@@ -7,7 +7,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { assertFeatureFlagEnv } from './feature-flags/assert-feature-env';
-
+import { VALIDATION_PIPE_OPTIONS } from './common/validation-pipe.options';
 /**
  * Foundations Operational Hardening — "no fallback secret, fail fast at
  * boot if unset." This check runs BEFORE NestFactory.create() so a missing
@@ -66,12 +66,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // strip properties not declared in the DTO
-      forbidNonWhitelisted: true, // reject requests with unexpected extra fields
-      transform: true, // enable @Type() coercion (PaginationDto, etc.)
-      transformOptions: { enableImplicitConversion: true },
-    }),
+    new ValidationPipe(VALIDATION_PIPE_OPTIONS),
   );
 
   app.useGlobalFilters(new AllExceptionsFilter());

@@ -14,6 +14,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { KeepRaw } from '../../common/dto/keep-raw';
 import { TRIGGER_TYPES } from '../dsl';
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
@@ -47,6 +48,7 @@ export class CreateAutomationDto {
   @IsObject()
   conditions?: Record<string, unknown>;
 
+  @KeepRaw()
   @IsArray()
   actions: unknown[];
 }
@@ -70,6 +72,7 @@ export class UpdateAutomationDto {
   conditions?: Record<string, unknown>;
 
   @IsOptional()
+  @KeepRaw()
   @IsArray()
   actions?: unknown[];
 }
@@ -88,6 +91,7 @@ export class ValidateAutomationDto {
   @IsObject()
   conditions?: Record<string, unknown>;
 
+  @KeepRaw()
   @IsArray()
   actions: unknown[];
 }

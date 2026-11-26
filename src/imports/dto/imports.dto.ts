@@ -1,5 +1,6 @@
 import { ImportIssueSeverity } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { KeepRaw } from '../../common/dto/keep-raw';
 import {
   IsArray,
   IsEnum,
@@ -34,6 +35,7 @@ export class CreatePerSpaceImportDto {
   @IsNotEmpty()
   connectionId: string;
 
+  @KeepRaw()
   @IsArray()
   spaces: unknown[];
 
@@ -56,6 +58,7 @@ export class ListImportsQueryDto {
 
 /** Structure is checked by parseSelection (class-validator cannot say "array of {id,type} with caps" usefully). */
 export class PutSelectionDto {
+  @KeepRaw()
   @IsArray()
   sources: unknown[];
 }

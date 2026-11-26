@@ -1,5 +1,6 @@
 import { TemplateKind, TemplateVisibility } from '@prisma/client';
 import { Transform } from 'class-transformer';
+import { KeepRaw } from '../../common/dto/keep-raw';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -181,6 +182,7 @@ export class PatchDraftDto {
   ifRevision: number;
 
   /** Operations (see editor.types.ts). Their shape is checked by the editor itself. */
+  @KeepRaw()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(200)
