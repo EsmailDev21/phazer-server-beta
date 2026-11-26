@@ -44,6 +44,7 @@ async function bootstrap() {
     // normal `req.body` parsing for everything else.
     rawBody: true,
   });
+  app.set('trust proxy', 1);
   const logger = new Logger('Bootstrap');
 
   app.use(helmet());
