@@ -45,6 +45,17 @@ export class ImportsController {
     return this.imports.list(q.workspaceId);
   }
 
+  /**
+   * Connections the caller can start an import from in this workspace: the workspace's account's ACTIVE-or-not
+   * connections whose provider can import. Needs only `runImport` on the workspace (unlike GET /integrations, which
+   * needs account admin). MUST stay declared before `@Get(':id')`, or "connections" is read as a job id.
+   */
+  @RequireAccess('runImport', { paramSource: 'query', paramName: 'workspaceId' })
+  @Get('connections')
+  connections(@Query() q: ListImportsQueryDto) {
+    return this.imports.listConnections(q.workspaceId);
+  }
+
   @Get(':id')
   get(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.imports.get(id, user.userId);

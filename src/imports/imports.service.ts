@@ -380,6 +380,31 @@ export class ImportsService {
     return rows.map((r) => this.view(r));
   }
 
+  /** Slim, credential-free view of the connections a person can pick as an import source in this workspace. */
+  async listConnections(workspaceId: string): Promise<
+    Array<{ id: string; provider: IntegrationProvider; externalAccountName: string; status: IntegrationConnectionStatus }>
+  > {
+    const workspace = await this.prisma.workspace.findUnique({
+      where: { id: workspaceId },
+      select: { accountId: true },
+    });
+    if (!workspace) throw new NotFoundException('Workspace not found');
+    const rows = await this.prisma.integrationConnection.findMany({
+      where: { accountId: workspace.accountId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+      select: { id: true, provider: true, externalAccountName: true, status: true },
+    });
+    // Only providers that actually implement IMPORT (Discord/Slack/GitHub connections are not import sources).
+    return rows.filter((r) => {
+      try {
+        this.adapterFor(r.provider);
+        return true;
+      } catch {
+        return false;
+      }
+    });
+  }
+
   async get(id: string, userId: string): Promise<ImportJobView> {
     return this.view(await this.load(id, userId));
   }
