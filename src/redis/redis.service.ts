@@ -4,6 +4,7 @@ import {
   checkRedisUrl,
   describeRedisTarget,
   redisErrorHint,
+  redisTlsOptions,
   type RedisTarget,
 } from './redis-url';
 
@@ -83,7 +84,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         `Connecting to Redis at ${this.target.host}:${this.target.port} (${this.target.tls ? 'TLS' : 'no TLS'}, ${this.target.hasPassword ? 'password set' : 'no password'})`,
       );
     }
+    const tls = redisTlsOptions(this.url);
     this.client = new Redis(this.url.trim(), {
+      ...(tls ? { tls } : {}), // SNI: see redisTlsOptions
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       connectTimeout: 5_000,

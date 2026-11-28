@@ -44,3 +44,27 @@ describe('describeRedisTarget and redisErrorHint', () => {
     expect(redisErrorHint('ECONNREFUSED', null)).toBe('');
   });
 });
+
+describe('redisTlsOptions / redisConnectionFromUrl (TLS SNI)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { redisTlsOptions, redisConnectionFromUrl } = require('./redis-url');
+
+  it('sets the servername to the host for rediss://, nothing for redis://', () => {
+    expect(redisTlsOptions('rediss://:pw@db.example.com:6379')).toEqual({ servername: 'db.example.com' });
+    expect(redisTlsOptions('redis://localhost:6379')).toBeUndefined();
+    expect(redisTlsOptions(undefined)).toBeUndefined();
+  });
+
+  it('builds explicit options, decoding credentials and the db index', () => {
+    expect(redisConnectionFromUrl('rediss://user:p%40ss@db.example.com:6380/2')).toEqual({
+      host: 'db.example.com',
+      port: 6380,
+      username: 'user',
+      password: 'p@ss',
+      db: 2,
+      tls: { servername: 'db.example.com' },
+    });
+    expect(redisConnectionFromUrl('redis://localhost')).toEqual({ host: 'localhost', port: 6379 });
+    expect(redisConnectionFromUrl('nope')).toBeNull();
+  });
+});

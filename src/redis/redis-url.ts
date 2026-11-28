@@ -59,3 +59,40 @@ export function redisErrorHint(message: string, target: RedisTarget | null): str
   }
   return ' Hint: the connection never became ready. Check the host, port and password, and that the provider allows connections from this server.';
 }
+
+/**
+ * TLS options for a rediss:// URL, or undefined for redis://. Some hosted Redis providers (Layerbase, ...) route
+ * connections by TLS servername (SNI) and reject a handshake without one ("ERR TLS SNI required"). ioredis does not
+ * set `servername` from the URL on its own, so say it explicitly: it is the host of the URL.
+ */
+export function redisTlsOptions(value: string | undefined): { servername: string } | undefined {
+  const target = describeRedisTarget(value);
+  return target?.tls ? { servername: target.host } : undefined;
+}
+
+/**
+ * Explicit ioredis options for a REDIS_URL (used for BullMQ, which takes options rather than a URL string): host, port,
+ * credentials, db and the TLS servername. Returns null for an invalid URL.
+ */
+export function redisConnectionFromUrl(value: string | undefined): {
+  host: string;
+  port: number;
+  username?: string;
+  password?: string;
+  db?: number;
+  tls?: { servername: string };
+} | null {
+  if (!checkRedisUrl(value).ok) return null;
+  const u = new URL((value as string).trim());
+  const dbRaw = u.pathname.replace(/^\//, '');
+  const db = /^\d+$/.test(dbRaw) ? Number(dbRaw) : undefined;
+  const tls = redisTlsOptions(value);
+  return {
+    host: u.hostname,
+    port: u.port ? Number(u.port) : 6379,
+    ...(u.username ? { username: decodeURIComponent(u.username) } : {}),
+    ...(u.password ? { password: decodeURIComponent(u.password) } : {}),
+    ...(db !== undefined ? { db } : {}),
+    ...(tls ? { tls } : {}),
+  };
+}

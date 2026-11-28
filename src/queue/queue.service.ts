@@ -1,7 +1,7 @@
 import { Logger, OnModuleDestroy } from '@nestjs/common';
 import { DefaultJobOptions, Queue } from 'bullmq';
 import { RedisNotConfiguredError } from '../redis/redis.service';
-import { checkRedisUrl } from '../redis/redis-url';
+import { checkRedisUrl, redisConnectionFromUrl } from '../redis/redis-url';
 import { JobContext, buildEnvelope } from './job-envelope';
 import {
   DEFAULT_ENQUEUE_TIMEOUT_MS,
@@ -60,10 +60,12 @@ export class QueueService implements OnModuleDestroy {
   }
 
   /** Connection settings for a BullMQ Worker in this process (same Redis, same key prefix). */
-  connectionOptions(): { connection: { url: string }; prefix: string } {
+  connectionOptions(): { connection: NonNullable<ReturnType<typeof redisConnectionFromUrl>>; prefix: string } {
     if (!this.configured) throw new RedisNotConfiguredError();
     return {
-      connection: { url: this.options.url.trim() },
+      // Explicit host/port/credentials/TLS servername rather than `{ url }`: the servername is required by providers that
+      // route by SNI (see redisTlsOptions).
+      connection: redisConnectionFromUrl(this.options.url)!,
       prefix: this.options.prefix,
     };
   }
